@@ -35,7 +35,7 @@ public class Category {
     private String description;
     
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
-    private List<Product> products = new ArrayList<>();
+    private final List<Product> products = new ArrayList<>();
 
     private String imageUrl;
 
