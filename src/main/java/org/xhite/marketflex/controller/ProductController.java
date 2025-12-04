@@ -2,21 +2,13 @@ package org.xhite.marketflex.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.xhite.marketflex.dto.ProductDto;
-import org.xhite.marketflex.service.CategoryService;
 import org.xhite.marketflex.service.FileStorageService;
 import org.xhite.marketflex.service.ProductService;
 
@@ -24,107 +16,81 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-@Controller
-@RequestMapping("/products")
+@RestController
+@RequestMapping("/api/v1/products")
 @RequiredArgsConstructor
 @Slf4j
 public class ProductController {
 
-    private static final String PRODUCT_ATTRIBUTE = "product";
     private final ProductService productService;
-    private final CategoryService categoryService;
     private final FileStorageService storageService;
 
+    /**
+     * GET /api/v1/products - List all products or filter by category
+     */
     @GetMapping
-    public String listProducts(@RequestParam(required = false) Long category, Model model) {
-        List<ProductDto> products = (category != null) ?
-            productService.getProductsByCategory(category) :
-            productService.getAllProducts();
-
-        // Log each product's image URL
-        products.forEach(product -> 
-            System.out.println("Product: " + product.getName() + ", Image URL: " + product.getImageUrl())
-        );
-
-        model.addAttribute("products", products);
-        model.addAttribute("categories", categoryService.getAllCategories());
-        return "product/list";
+    public ResponseEntity<List<ProductDto>> listProducts(
+            @RequestParam(required = false) Long categoryId) {
+        List<ProductDto> products = (categoryId != null)
+            ? productService.getProductsByCategory(categoryId)
+            : productService.getAllProducts();
+        return ResponseEntity.ok(products);
     }
+
+    /**
+     * GET /api/v1/products/{id} - Get product by ID
+     */
     @GetMapping("/{id}")
-    public String getProductDetail(@PathVariable Long id, Model model) {
-        ProductDto product = productService.getProductById(id).orElse(null);
-        model.addAttribute("product", product);
-        return "product/detail";
+    public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
+        return productService.getProductById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
-    
-    
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @GetMapping("/create")
-    public String createProductForm(Model model) {
-        model.addAttribute("product", new ProductDto());
-        model.addAttribute("categories", categoryService.getAllCategories());
-        return "product/form";
-    }
-    
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @PostMapping
-    public String createProduct(@Valid @ModelAttribute("product") ProductDto productDto,
-                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
-                              BindingResult result,
-                              Model model) {
-        if (result.hasErrors()) {
-            model.addAttribute("categories", categoryService.getAllCategories());
-            return "product/form";
-        }
 
+    /**
+     * POST /api/v1/products - Create new product (ADMIN/MANAGER only)
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductDto> createProduct(
+            @Valid @RequestPart("product") ProductDto productDto,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = storageService.store(imageFile);
-            productDto.setImageUrl(imageUrl); // FileStorageService now returns complete URL
+            productDto.setImageUrl(imageUrl);
         }
 
-        productService.createProduct(productDto);
-        return "redirect:/products";
+        ProductDto created = productService.createProduct(productDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
-    
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @GetMapping("/{id}/edit")
-    public String editProductForm(@PathVariable("id") Long id, Model model) {
-        productService.getProductById(id).ifPresent(product -> {
-            model.addAttribute("product", product);
-            model.addAttribute("categories", categoryService.getAllCategories());
-        });
-        return "product/form";
-    }
-    
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
-    @PostMapping("/{id}")
-    public String updateProduct(@PathVariable("id") Long id, 
-                              @Valid @ModelAttribute("product") ProductDto productDto,
-                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
-                              BindingResult result,
-                              Model model) {
-        if (result.hasErrors()) {
-            model.addAttribute("categories", categoryService.getAllCategories());
-            return "product/form";
-        }
 
+    /**
+     * PUT /api/v1/products/{id} - Update existing product (ADMIN/MANAGER only)
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductDto> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestPart("product") ProductDto productDto,
+            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+        
         if (imageFile != null && !imageFile.isEmpty()) {
-            String filename = storageService.store(imageFile);
-            productDto.setImageUrl("/uploads/" + filename);
-        } else if (productDto.getImageUrl() == null || productDto.getImageUrl().trim().isEmpty()) {
-            // If no new image and no existing image, use a default image
-            productDto.setImageUrl("/images/default-product.jpg");
+            String imageUrl = storageService.store(imageFile);
+            productDto.setImageUrl(imageUrl);
         }
 
-        productService.updateProduct(id, productDto);
-        return "redirect:/products";
+        ProductDto updated = productService.updateProduct(id, productDto);
+        return ResponseEntity.ok(updated);
     }
-    
+
+    /**
+     * DELETE /api/v1/products/{id} - Delete product (ADMIN/MANAGER only)
+     */
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable("id") Long id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
-
 }

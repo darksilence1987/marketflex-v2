@@ -9,15 +9,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import lombok.RequiredArgsConstructor;
 
 @Configuration
-@RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
     private static final Logger log = LoggerFactory.getLogger(WebConfig.class);
-    private final GlobalModelInterceptor globalModelInterceptor;
 
     @Value("${app.upload.path}")
     private String uploadPath;
@@ -45,11 +41,5 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("file:" + uploadPath + "/")
                 .setCachePeriod(3600)
                 .resourceChain(true);
-    }
-
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(globalModelInterceptor)
-               .excludePathPatterns("/api/**", "/static/**", "/css/**", "/js/**");
     }
 }
