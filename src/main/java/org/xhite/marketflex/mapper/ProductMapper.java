@@ -17,26 +17,27 @@ public class ProductMapper {
         if (product == null) {
             return null;
         }
-        ProductDto dto = new ProductDto();
-        dto.setId(product.getId());
-        dto.setName(product.getName());
-        dto.setDescription(product.getDescription());
-        dto.setPrice(product.getPrice());
-        dto.setStockQuantity(product.getStockQuantity());
-        dto.setCategoryId(product.getCategory().getId());
-        dto.setCategoryName(product.getCategory().getName());
-        dto.setImageUrl(product.getImageUrl());
-        return dto;
+        return ProductDto.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stockQuantity(product.getStockQuantity())
+                .categoryId(product.getCategory().getId())
+                .categoryName(product.getCategory().getName())
+                .imageUrl(product.getImageUrl())
+                .active(product.isActive())
+                .build();
     }
 
     public Product toEntity(ProductDto productDto) {
         if (productDto == null) return null;
-        Category category = productDto.getCategoryId() == null ? null : categoryRepository.findById(productDto.getCategoryId()).orElse(null);
+        Category category = productDto.categoryId() == null ? null : categoryRepository.findById(productDto.categoryId()).orElse(null);
         return Product.builder()
-            .id(productDto.getId())
-            .name(productDto.getName())
-            .description(productDto.getDescription())
-            .price(productDto.getPrice())
+            .id(productDto.id())
+            .name(productDto.name())
+            .description(productDto.description())
+            .price(productDto.price())
             .category(category)  
             .build();
     }

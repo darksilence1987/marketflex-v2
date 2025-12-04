@@ -1,13 +1,8 @@
 package org.xhite.marketflex.dto;
 
-public class ErrorResponse {
-    private final String message;
+import lombok.Builder;
 
-    public ErrorResponse(String message) {
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-}
+@Builder
+public record ErrorResponse(
+    String message
+) {}

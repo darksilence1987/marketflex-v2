@@ -56,12 +56,23 @@ public class ProductController {
             @Valid @RequestPart("product") ProductDto productDto,
             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         
+        ProductDto finalDto = productDto;
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = storageService.store(imageFile);
-            productDto.setImageUrl(imageUrl);
+            finalDto = ProductDto.builder()
+                    .id(productDto.id())
+                    .name(productDto.name())
+                    .description(productDto.description())
+                    .price(productDto.price())
+                    .stockQuantity(productDto.stockQuantity())
+                    .categoryId(productDto.categoryId())
+                    .categoryName(productDto.categoryName())
+                    .imageUrl(imageUrl)
+                    .active(productDto.active())
+                    .build();
         }
 
-        ProductDto created = productService.createProduct(productDto);
+        ProductDto created = productService.createProduct(finalDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -75,12 +86,23 @@ public class ProductController {
             @Valid @RequestPart("product") ProductDto productDto,
             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         
+        ProductDto finalDto = productDto;
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = storageService.store(imageFile);
-            productDto.setImageUrl(imageUrl);
+            finalDto = ProductDto.builder()
+                    .id(productDto.id())
+                    .name(productDto.name())
+                    .description(productDto.description())
+                    .price(productDto.price())
+                    .stockQuantity(productDto.stockQuantity())
+                    .categoryId(productDto.categoryId())
+                    .categoryName(productDto.categoryName())
+                    .imageUrl(imageUrl)
+                    .active(productDto.active())
+                    .build();
         }
 
-        ProductDto updated = productService.updateProduct(id, productDto);
+        ProductDto updated = productService.updateProduct(id, finalDto);
         return ResponseEntity.ok(updated);
     }
 

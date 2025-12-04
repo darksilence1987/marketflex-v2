@@ -2,14 +2,14 @@ package org.xhite.marketflex.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Builder;
 
-@Data
-public class LoginRequest {
+@Builder
+public record LoginRequest(
     @NotBlank(message = "Email is required")
     @Email(message = "Please provide a valid email")
-    private String email;
+    String email,
 
     @NotBlank(message = "Password is required")
-    private String password;
-}
+    String password
+) {}

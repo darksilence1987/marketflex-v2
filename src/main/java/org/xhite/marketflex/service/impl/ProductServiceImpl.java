@@ -58,10 +58,10 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductDto createProduct(@Valid ProductDto productDto) {
-        log.info("Creating new product: {}", productDto.getName());
+        log.info("Creating new product: {}", productDto.name());
 
-        Category category = categoryRepository.findById(productDto.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.getCategoryId()));
+        Category category = categoryRepository.findById(productDto.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.categoryId()));
 
         Product product = new Product();
         updateProductFromDto(product, productDto, category);
@@ -81,8 +81,8 @@ public class ProductServiceImpl implements ProductService {
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         boolean active = existingProduct.isActive();
-        Category category = categoryRepository.findById(productDto.getCategoryId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.getCategoryId()));
+        Category category = categoryRepository.findById(productDto.categoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.categoryId()));
 
         updateProductFromDto(existingProduct, productDto, category);
         existingProduct.setActive(active);
@@ -139,15 +139,15 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void updateProductFromDto(Product product, ProductDto dto, Category category) {
-        product.setName(dto.getName());
-        product.setDescription(dto.getDescription());
-        product.setPrice(dto.getPrice());
-        product.setStockQuantity(dto.getStockQuantity());
+        product.setName(dto.name());
+        product.setDescription(dto.description());
+        product.setPrice(dto.price());
+        product.setStockQuantity(dto.stockQuantity());
         product.setCategory(category);
-        if (dto.getImageUrl() != null && !dto.getImageUrl().isEmpty()) {
-            product.setImageUrl(dto.getImageUrl());
+        if (dto.imageUrl() != null && !dto.imageUrl().isEmpty()) {
+            product.setImageUrl(dto.imageUrl());
         }
-        product.setActive(dto.isActive());
+        product.setActive(dto.active());
     }
 
     @Override
@@ -168,12 +168,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Product convertToEntity(ProductDto productDto) {
         Product product = new Product();
-        product.setId(productDto.getId());
-        product.setName(productDto.getName());
-        product.setDescription(productDto.getDescription());
-        product.setPrice(productDto.getPrice());
-        product.setStockQuantity(productDto.getStockQuantity());
-        product.setActive(productDto.isActive());
+        product.setId(productDto.id());
+        product.setName(productDto.name());
+        product.setDescription(productDto.description());
+        product.setPrice(productDto.price());
+        product.setStockQuantity(productDto.stockQuantity());
+        product.setActive(productDto.active());
         return product;
     }
 

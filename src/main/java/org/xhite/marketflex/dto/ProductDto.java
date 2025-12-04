@@ -1,40 +1,39 @@
 package org.xhite.marketflex.dto;
 
-import jakarta.validation.constraints.*;
-import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+
 import java.math.BigDecimal;
 
-@Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ProductDto {
-    private Long id;
+public record ProductDto(
+    Long id,
 
     @NotBlank(message = "Product name is required")
     @Size(max = 100)
-    private String name;
+    String name,
 
     @Size(max = 1024)
-    private String description;
+    String description,
 
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than zero")
-    private BigDecimal price;
+    BigDecimal price,
 
     @NotNull(message = "Stock quantity is required")
     @Min(value = 0, message = "Stock quantity cannot be negative")
-    private Integer stockQuantity;
+    Integer stockQuantity,
 
     @NotNull(message = "Category is required")
-    private Long categoryId;
+    Long categoryId,
 
-    private String imageUrl;
+    String imageUrl,
 
-    private String categoryName;
+    String categoryName,
 
-    private boolean active;
-}
+    boolean active
+) {}

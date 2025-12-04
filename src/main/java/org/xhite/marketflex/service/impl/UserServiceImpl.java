@@ -41,20 +41,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public AppUser registerUser(RegisterRequest request) {
         // Check if email already exists
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new BusinessException("Email already registered: " + request.getEmail());
+        if (userRepository.findByEmail(request.email()).isPresent()) {
+            throw new BusinessException("Email already registered: " + request.email());
         }
 
         AppUser user = new AppUser();
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setPhoneNumber(request.getPhoneNumber());
+        user.setFirstName(request.firstName());
+        user.setLastName(request.lastName());
+        user.setEmail(request.email());
+        user.setPassword(passwordEncoder.encode(request.password()));
+        user.setPhoneNumber(request.phoneNumber());
         user.addRole(Role.CUSTOMER);
         user.setEnabled(true);
 
-        log.info("Registering new user: {}", request.getEmail());
+        log.info("Registering new user: {}", request.email());
         return userRepository.save(user);
     }
 }

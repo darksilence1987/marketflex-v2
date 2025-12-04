@@ -56,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     @CacheEvict(allEntries = true)
     public CategoryDto createCategory(CreateCategoryRequest request) {
-        if (categoryRepository.existsByNameAndActiveTrue(request.getName())) {
+        if (categoryRepository.existsByNameAndActiveTrue(request.name())) {
             throw new BusinessException("Category with this name already exists");
         }
         Category category = categoryMapper.toEntity(request);
@@ -71,12 +71,12 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
         
-        category.setName(request.getName());
-        category.setDescription(request.getDescription());
+        category.setName(request.name());
+        category.setDescription(request.description());
         
         // Only update image URL if a new one is provided
-        if (request.getImageUrl() != null) {
-            category.setImageUrl(request.getImageUrl());
+        if (request.imageUrl() != null) {
+            category.setImageUrl(request.imageUrl());
         }
         
         category = categoryRepository.save(category);

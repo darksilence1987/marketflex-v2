@@ -51,13 +51,18 @@ public class CategoryController {
             @Valid @RequestPart("category") CreateCategoryRequest request,
             @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         
+        CreateCategoryRequest finalRequest = request;
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = storageService.store(imageFile);
             log.debug("Stored image with URL: {}", imageUrl);
-            request.setImageUrl(imageUrl);
+            finalRequest = CreateCategoryRequest.builder()
+                    .name(request.name())
+                    .description(request.description())
+                    .imageUrl(imageUrl)
+                    .build();
         }
         
-        CategoryDto created = categoryService.createCategory(request);
+        CategoryDto created = categoryService.createCategory(finalRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -73,14 +78,21 @@ public class CategoryController {
         
         CategoryDto existing = categoryService.getCategoryById(id);
         
+        String imageUrl;
         if (imageFile != null && !imageFile.isEmpty()) {
-            request.setImageUrl(storageService.store(imageFile));
+            imageUrl = storageService.store(imageFile);
         } else {
             // Keep existing image if no new image is uploaded
-            request.setImageUrl(existing.getImageUrl());
+            imageUrl = existing.imageUrl();
         }
         
-        return ResponseEntity.ok(categoryService.updateCategory(id, request));
+        CreateCategoryRequest finalRequest = CreateCategoryRequest.builder()
+                .name(request.name())
+                .description(request.description())
+                .imageUrl(imageUrl)
+                .build();
+        
+        return ResponseEntity.ok(categoryService.updateCategory(id, finalRequest));
     }
 
     /**

@@ -2,16 +2,16 @@ package org.xhite.marketflex.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Builder;
 
-@Data
-public class CreateCategoryRequest {
+@Builder
+public record CreateCategoryRequest(
     @NotBlank(message = "Category name is required")
     @Size(max = 100)
-    private String name;
+    String name,
 
     @Size(max = 500)
-    private String description;
-    
-    private String imageUrl;
-}
+    String description,
+
+    String imageUrl
+) {}

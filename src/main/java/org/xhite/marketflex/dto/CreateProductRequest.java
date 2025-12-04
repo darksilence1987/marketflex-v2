@@ -7,27 +7,27 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Builder;
 
-@Data
-public class CreateProductRequest {
+@Builder
+public record CreateProductRequest(
     @NotBlank(message = "Product name is required")
     @Size(max = 100)
-    private String name;
+    String name,
 
     @Size(max = 1024)
-    private String description;
+    String description,
 
     @NotNull(message = "Price is required")
     @DecimalMin(value = "0.0", inclusive = false)
-    private BigDecimal price;
+    BigDecimal price,
 
     @NotNull(message = "Stock quantity is required")
     @Min(0)
-    private Integer stockQuantity;
+    Integer stockQuantity,
 
     @NotNull(message = "Category is required")
-    private Long categoryId;
-    
-    private String imageUrl;
-}
+    Long categoryId,
+
+    String imageUrl
+) {}

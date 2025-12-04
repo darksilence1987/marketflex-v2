@@ -41,8 +41,8 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
-                request.getEmail(),
-                request.getPassword()
+                request.email(),
+                request.password()
             )
         );
 
@@ -80,8 +80,8 @@ public class AuthController {
         // Auto-login after registration
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(
-                request.getEmail(),
-                request.getPassword()
+                request.email(),
+                request.password()
             )
         );
         

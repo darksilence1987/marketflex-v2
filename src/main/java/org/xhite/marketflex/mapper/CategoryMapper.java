@@ -33,9 +33,9 @@ public class CategoryMapper {
         if (request == null) return null;
 
         return Category.builder()
-                .name(request.getName())
-                .description(request.getDescription())
-                .imageUrl(request.getImageUrl())
+                .name(request.name())
+                .description(request.description())
+                .imageUrl(request.imageUrl())
                 .active(true)
                 .build();
     }
