@@ -7,28 +7,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.xhite.marketflex.dto.AuthResponse;
 import org.xhite.marketflex.dto.LoginRequest;
+import org.xhite.marketflex.dto.RegisterRequest;
 import org.xhite.marketflex.model.AppUser;
 import org.xhite.marketflex.repository.UserRepository;
 import org.xhite.marketflex.security.CustomUserDetailsService;
 import org.xhite.marketflex.security.JwtTokenProvider;
+import org.xhite.marketflex.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-@Controller
-@RequestMapping("")
+@RestController
+@RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
     
@@ -36,50 +32,124 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    @GetMapping("/login")
-    public String loginPage() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && 
-            auth.getPrincipal() instanceof UserDetails) {
-            return "redirect:/home";
-        }
-        return "auth/login";
+    /**
+     * POST /api/v1/auth/login - Authenticate user and return JWT
+     */
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+            )
+        );
+
+        String jwt = tokenProvider.generateToken(authentication);
+        
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        AppUser user = ((CustomUserDetailsService) userDetailsService)
+            .getUserByEmail(userDetails.getUsername());
+
+        user.setLastLoginDate(LocalDateTime.now());
+        userRepository.save(user);
+        
+        String primaryRole = user.getRoles().stream()
+            .findFirst()
+            .map(Enum::name)
+            .orElse("CUSTOMER");
+        
+        return ResponseEntity.ok(AuthResponse.builder()
+            .token(jwt)
+            .tokenType("Bearer")
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .role(primaryRole)
+            .build());
     }
-    
 
-    @PostMapping("/api/auth/login")
-    @ResponseBody
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        try {
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getEmail(),
-                    loginRequest.getPassword()
-                )
-            );
+    /**
+     * POST /api/v1/auth/register - Register new user
+     */
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        AppUser user = userService.registerUser(request);
+        
+        // Auto-login after registration
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                request.getEmail(),
+                request.getPassword()
+            )
+        );
+        
+        String jwt = tokenProvider.generateToken(authentication);
+        
+        String primaryRole = user.getRoles().stream()
+            .findFirst()
+            .map(Enum::name)
+            .orElse("CUSTOMER");
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(AuthResponse.builder()
+            .token(jwt)
+            .tokenType("Bearer")
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .role(primaryRole)
+            .build());
+    }
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            String jwt = tokenProvider.generateToken(authentication);
-            
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            AppUser user = ((CustomUserDetailsService) userDetailsService)
-                .getUserByEmail(userDetails.getUsername());
+    /**
+     * GET /api/v1/auth/me - Get current authenticated user
+     */
+    @GetMapping("/me")
+    public ResponseEntity<AuthResponse> getCurrentUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        AppUser user = ((CustomUserDetailsService) userDetailsService)
+            .getUserByEmail(userDetails.getUsername());
+        
+        String primaryRole = user.getRoles().stream()
+            .findFirst()
+            .map(Enum::name)
+            .orElse("CUSTOMER");
+        
+        return ResponseEntity.ok(AuthResponse.builder()
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .role(primaryRole)
+            .build());
+    }
 
-            user.setLastLoginDate(LocalDateTime.now());
-            userRepository.save(user);
-            return ResponseEntity.ok(AuthResponse.builder()
-                .token(jwt)
-                .email(user.getEmail())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .redirectUrl("/home")  // Add redirect URL
-                .build());
-                
-        } catch (AuthenticationException e) {
-            return ResponseEntity
-                .status(HttpStatus.UNAUTHORIZED)
-                .body("Invalid email or password");
-        }
+    /**
+     * POST /api/v1/auth/refresh - Refresh JWT token
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Generate new token from current authentication
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+            userDetails, null, userDetails.getAuthorities());
+        String jwt = tokenProvider.generateToken(authentication);
+        
+        AppUser user = ((CustomUserDetailsService) userDetailsService)
+            .getUserByEmail(userDetails.getUsername());
+        
+        String primaryRole = user.getRoles().stream()
+            .findFirst()
+            .map(Enum::name)
+            .orElse("CUSTOMER");
+        
+        return ResponseEntity.ok(AuthResponse.builder()
+            .token(jwt)
+            .tokenType("Bearer")
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .role(primaryRole)
+            .build());
     }
 }

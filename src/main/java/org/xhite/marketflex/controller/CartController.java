@@ -1,93 +1,63 @@
 package org.xhite.marketflex.controller;
 
-import org.springframework.stereotype.Controller;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
-import org.springframework.ui.Model;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import lombok.extern.slf4j.Slf4j;
 import org.xhite.marketflex.service.CartService;
 import org.xhite.marketflex.dto.CartDto;
-import org.xhite.marketflex.exception.InsufficientStockException;
-import org.springframework.http.ResponseEntity;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Map;
-
-@Controller
-@SessionAttributes("cart")
-@RequestMapping("/cart")
+@RestController
+@RequestMapping("/api/v1/cart")
 @RequiredArgsConstructor
-@lombok.extern.slf4j.Slf4j
+@Slf4j
 public class CartController {
+    
     private final CartService cartService;
 
-    @ModelAttribute("cart")
-    public CartDto cart() {
-        return CartDto.builder()
-                .cartItems(new ArrayList<>())
-                .totalPrice(BigDecimal.ZERO)
-                .totalItems(0)
-                .build();
-    }
-
+    /**
+     * GET /api/v1/cart - Get current user's cart
+     */
     @GetMapping
-    public String viewCart(Model model) {
-        CartDto cart = cartService.getCart();
-        model.addAttribute("cart", cart);
-        return "cart/view";
+    public ResponseEntity<CartDto> getCart() {
+        return ResponseEntity.ok(cartService.getCart());
     }
 
-    @PostMapping("/add/{productId}")
-    @ResponseBody
-    public ResponseEntity<?> addToCart(@PathVariable Long productId,
-                          @RequestParam(defaultValue = "1") Integer quantity) {
-        try {
-            CartDto cart = cartService.addToCart(productId, quantity);
-            return ResponseEntity.ok(Map.of(
-                "success", true, 
-                "cart", cart,
-                "message", "Product added to cart successfully"
-            ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                "success", false, 
-                "message", e.getMessage()
-            ));
-        }
+    /**
+     * POST /api/v1/cart/items/{productId} - Add product to cart
+     */
+    @PostMapping("/items/{productId}")
+    public ResponseEntity<CartDto> addToCart(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "1") Integer quantity) {
+        return ResponseEntity.ok(cartService.addToCart(productId, quantity));
     }
 
-    @PostMapping("/items/{itemId}")
-    public String updateCartItem(@PathVariable Long itemId,
-                               @RequestParam Integer quantity,
-                               RedirectAttributes redirectAttributes) {
-        try {
-            cartService.updateCartItem(itemId, quantity);
-            redirectAttributes.addFlashAttribute("success", "Cart updated successfully");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", e.getMessage());
-        }
-        return "redirect:/cart";
+    /**
+     * PUT /api/v1/cart/items/{itemId} - Update cart item quantity
+     */
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<CartDto> updateCartItem(
+            @PathVariable Long itemId,
+            @RequestParam Integer quantity) {
+        return ResponseEntity.ok(cartService.updateCartItem(itemId, quantity));
     }
 
-    @PostMapping("/items/{itemId}/remove")
-    public String removeFromCart(@PathVariable Long itemId,
-                               RedirectAttributes redirectAttributes) {
-        try {
-            cartService.removeFromCart(itemId);
-            redirectAttributes.addFlashAttribute("success", "Item removed from cart");
-        } catch (Exception e) {
-            log.error("Error removing item from cart: ", e);
-            redirectAttributes.addFlashAttribute("error", 
-                "Failed to remove item: " + e.getMessage());
-        }
-        return "redirect:/cart";
+    /**
+     * DELETE /api/v1/cart/items/{itemId} - Remove item from cart
+     */
+    @DeleteMapping("/items/{itemId}")
+    public ResponseEntity<Void> removeFromCart(@PathVariable Long itemId) {
+        cartService.removeFromCart(itemId);
+        return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/clear")
-    public String clearCart(RedirectAttributes redirectAttributes) {
+    /**
+     * DELETE /api/v1/cart - Clear entire cart
+     */
+    @DeleteMapping
+    public ResponseEntity<Void> clearCart() {
         cartService.clearCart();
-        redirectAttributes.addFlashAttribute("success", "Cart cleared successfully");
-        return "redirect:/cart";
+        return ResponseEntity.noContent().build();
     }
 }
