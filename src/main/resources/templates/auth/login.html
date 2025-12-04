@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Market Flex - Login</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link th:href="@{/css/auth.css}" rel="stylesheet" />
+  </head>
+  <body class="bg-light">
+    <div class="container">
+      <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h3 class="text-center mb-4">Welcome to Market Flex</h3>
+
+              <div th:if="${param.error}" class="alert alert-danger">
+                Invalid email or password
+              </div>
+              <div th:if="${param.logout}" class="alert alert-success">
+                You have been logged out
+              </div>
+
+              <form
+                th:action="@{/api/auth/login}"
+                method="post"
+                class="needs-validation"
+                novalidate
+              >
+                <div class="mb-3">
+                  <label for="username" class="form-label">Email</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="username"
+                    name="username"
+                    required
+                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                  />
+                  <div class="invalid-feedback">
+                    Please enter a valid email address
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="password" class="form-label">Password</label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    name="password"
+                    required
+                    minlength="8"
+                  />
+                  <div class="invalid-feedback">Password is required</div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                  Login
+                </button>
+              </form>
+              <div class="text-center mt-3">
+                <a th:href="@{/register}" class="text-decoration-none"
+                  >Create new account</a
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/src/main/resources/static/js/auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
