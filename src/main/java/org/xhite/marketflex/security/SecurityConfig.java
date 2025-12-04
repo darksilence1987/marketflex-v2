@@ -9,6 +9,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -47,7 +48,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             // Disable CSRF for stateless API
-            .csrf(csrf -> csrf.disable())
+            .csrf(AbstractHttpConfigurer::disable)
             
             // Enable CORS with custom configuration
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -67,6 +68,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/public/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 
                 // Static resources (uploads)
                 .requestMatchers("/uploads/**").permitAll()

@@ -141,8 +141,11 @@ public class CartServiceImpl implements CartService {
         AppUser user = userService.getCurrentUser();
         Cart cart = cartRepository.findByUser(user)
                 .orElseGet(() -> createNewCart(user));
-        
-        cartItemRepository.deleteAllByCart(cart);
+
+        cart.getCartItems().clear();
+        cartRepository.save(cart);
+
+        log.debug("Cart cleared successfully for user: {}", user.getEmail());
     }
 
     private Cart createNewCart(AppUser user) {
