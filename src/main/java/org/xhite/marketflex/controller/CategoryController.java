@@ -30,7 +30,13 @@ public class CategoryController {
      * GET /api/v1/categories - List all categories
      */
     @GetMapping
-    public ResponseEntity<List<CategoryDto>> listCategories() {
+    public ResponseEntity<List<CategoryDto>> listCategories(
+            @RequestParam(defaultValue = "false") boolean featured,
+            @RequestParam(defaultValue = "6") int limit) {
+
+        if (featured) {
+            return ResponseEntity.ok(categoryService.getFeaturedCategories(limit));
+        }
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
 

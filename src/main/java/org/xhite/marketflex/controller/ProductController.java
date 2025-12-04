@@ -30,10 +30,17 @@ public class ProductController {
      */
     @GetMapping
     public ResponseEntity<List<ProductDto>> listProducts(
-            @RequestParam(required = false) Long categoryId) {
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(defaultValue = "false") boolean featured,
+            @RequestParam(defaultValue = "10") int limit) {
+
+        if (featured) {
+            return ResponseEntity.ok(productService.getFeaturedProducts(limit));
+        }
+
         List<ProductDto> products = (categoryId != null)
-            ? productService.getProductsByCategory(categoryId)
-            : productService.getAllProducts();
+                ? productService.getProductsByCategory(categoryId)
+                : productService.getAllProducts();
         return ResponseEntity.ok(products);
     }
 
