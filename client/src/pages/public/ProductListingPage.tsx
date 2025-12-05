@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   SlidersHorizontal,
@@ -16,6 +17,7 @@ import { AuthDrawer } from '../../components/features/AuthDrawer';
 import { CartDrawer } from '../../components/features/CartDrawer';
 import { ProductCard, ProductCardSkeleton } from '../../components/features/ProductCard';
 import { Button } from '../../components/ui/Button';
+import { DualRangeSlider } from '../../components/ui/Slider';
 import {
   useProducts,
   filterProducts,
@@ -23,6 +25,17 @@ import {
   mockCategories,
   type ProductFilters,
 } from '../../hooks/useProducts';
+import api from '../../lib/axios';
+
+// Fetch categories from API
+async function fetchCategories() {
+  try {
+    const { data } = await api.get('/categories');
+    return data;
+  } catch {
+    return mockCategories;
+  }
+}
 
 const sortOptions = [
   { value: 'newest', label: 'Newest First' },
@@ -31,21 +44,26 @@ const sortOptions = [
   { value: 'name', label: 'Name: A to Z' },
 ] as const;
 
-const priceRanges = [
-  { min: 0, max: 50, label: 'Under $50' },
-  { min: 50, max: 100, label: '$50 - $100' },
-  { min: 100, max: 200, label: '$100 - $200' },
-  { min: 200, max: 500, label: '$200 - $500' },
-  { min: 500, max: Infinity, label: '$500+' },
-];
+// Price range constants
+const PRICE_MIN = 0;
+const PRICE_MAX = 1000;
 
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: products, isLoading, error } = useProducts();
 
+  // Fetch categories from API
+  const { data: apiCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Use API categories or fallback to mock
+  const categories = apiCategories ?? mockCategories;
+
   // Use mock data if API fails or is loading
   const productList = products ?? mockProducts;
-  const categories = mockCategories;
 
   // Filter state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -58,17 +76,31 @@ export default function ProductListingPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Get filters from URL
-  const filters: ProductFilters = {
+  const filters: ProductFilters = useMemo(() => ({
     categoryId: searchParams.get('category') ? Number(searchParams.get('category')) : undefined,
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
     inStock: searchParams.get('inStock') === 'true',
     search: searchParams.get('q') ?? undefined,
     sortBy: (searchParams.get('sort') as ProductFilters['sortBy']) ?? 'newest',
-  };
+  }), [searchParams]);
+
+  // Get selected category name
+  const selectedCategoryName = useMemo(() => {
+    if (!filters.categoryId) return null;
+    const category = categories.find((c: { id: number; name: string }) => c.id === filters.categoryId);
+    return category?.name ?? null;
+  }, [filters.categoryId, categories]);
+
+  // Page title
+  const pageTitle = useMemo(() => {
+    if (filters.search) return `Search: "${filters.search}"`;
+    if (selectedCategoryName) return selectedCategoryName;
+    return 'All Products';
+  }, [filters.search, selectedCategoryName]);
 
   // Update URL params
-  const updateFilter = (key: string, value: string | null) => {
+  const updateFilter = useCallback((key: string, value: string | null) => {
     const newParams = new URLSearchParams(searchParams);
     if (value === null || value === '') {
       newParams.delete(key);
@@ -76,20 +108,39 @@ export default function ProductListingPage() {
       newParams.set(key, value);
     }
     setSearchParams(newParams);
-  };
+  }, [searchParams, setSearchParams]);
 
-  const clearAllFilters = () => {
+  // Handle price range change
+  const handlePriceRangeChange = useCallback((values: { min: number; max: number }) => {
+    const newParams = new URLSearchParams(searchParams);
+    
+    if (values.min === PRICE_MIN) {
+      newParams.delete('minPrice');
+    } else {
+      newParams.set('minPrice', String(values.min));
+    }
+    
+    if (values.max === PRICE_MAX) {
+      newParams.delete('maxPrice');
+    } else {
+      newParams.set('maxPrice', String(values.max));
+    }
+    
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
+
+  const clearAllFilters = useCallback(() => {
     setSearchParams(new URLSearchParams());
-  };
+  }, [setSearchParams]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     return filterProducts(productList, filters);
   }, [productList, filters]);
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
+  const toggleSection = useCallback((section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
+  }, []);
 
   const hasActiveFilters =
     filters.categoryId ||
@@ -98,8 +149,8 @@ export default function ProductListingPage() {
     filters.inStock ||
     filters.search;
 
-  // Sidebar content
-  const SidebarContent = () => (
+  // Sidebar content component
+  const SidebarContent = useCallback(() => (
     <div className="space-y-6">
       {/* Categories */}
       <div className="border-b border-slate-800 pb-6">
@@ -116,9 +167,9 @@ export default function ProductListingPage() {
         </button>
         {expandedSections.categories && (
           <div className="space-y-2">
-            {categories.map((category) => (
+            {categories.map((category: { id: number; name: string }) => (
               <label
-                key={category.id}
+                key={`category-${category.id}`}
                 className="flex items-center gap-3 cursor-pointer group"
               >
                 <div
@@ -147,7 +198,7 @@ export default function ProductListingPage() {
         )}
       </div>
 
-      {/* Price Range */}
+      {/* Price Range - Now using Slider */}
       <div className="border-b border-slate-800 pb-6">
         <button
           onClick={() => toggleSection('price')}
@@ -161,43 +212,15 @@ export default function ProductListingPage() {
           )}
         </button>
         {expandedSections.price && (
-          <div className="space-y-2">
-            {priceRanges.map((range, i) => {
-              const isSelected =
-                filters.minPrice === range.min &&
-                (range.max === Infinity
-                  ? filters.maxPrice === undefined
-                  : filters.maxPrice === range.max);
-              return (
-                <label key={i} className="flex items-center gap-3 cursor-pointer group">
-                  <div
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                      isSelected
-                        ? 'bg-emerald-500 border-emerald-500'
-                        : 'border-slate-600 group-hover:border-emerald-500'
-                    }`}
-                    onClick={() => {
-                      if (isSelected) {
-                        updateFilter('minPrice', null);
-                        updateFilter('maxPrice', null);
-                      } else {
-                        updateFilter('minPrice', String(range.min));
-                        updateFilter(
-                          'maxPrice',
-                          range.max === Infinity ? null : String(range.max)
-                        );
-                      }
-                    }}
-                  >
-                    {isSelected && <Check className="w-3 h-3 text-white" />}
-                  </div>
-                  <span className="text-slate-300 group-hover:text-white transition-colors">
-                    {range.label}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
+          <DualRangeSlider
+            min={PRICE_MIN}
+            max={PRICE_MAX}
+            step={10}
+            minValue={filters.minPrice ?? PRICE_MIN}
+            maxValue={filters.maxPrice ?? PRICE_MAX}
+            onChange={handlePriceRangeChange}
+            formatLabel={(v) => `$${v}`}
+          />
         )}
       </div>
 
@@ -240,7 +263,7 @@ export default function ProductListingPage() {
         </Button>
       )}
     </div>
-  );
+  ), [categories, expandedSections, filters, hasActiveFilters, toggleSection, updateFilter, handlePriceRangeChange, clearAllFilters]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
@@ -252,7 +275,7 @@ export default function ProductListingPage() {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
-            {filters.search ? `Search: "${filters.search}"` : 'All Products'}
+            {pageTitle}
           </h1>
           <p className="text-slate-400">
             {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
@@ -280,10 +303,21 @@ export default function ProductListingPage() {
 
             {/* Active Filters Pills */}
             <div className="hidden md:flex items-center gap-2 flex-wrap">
-              {filters.categoryId && (
+              {filters.categoryId && selectedCategoryName && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full">
-                  {categories.find((c) => c.id === filters.categoryId)?.name}
+                  {selectedCategoryName}
                   <button onClick={() => updateFilter('category', null)}>
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {(filters.minPrice !== undefined || filters.maxPrice !== undefined) && (
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-500/20 text-emerald-400 text-sm rounded-full">
+                  ${filters.minPrice ?? PRICE_MIN} - ${filters.maxPrice ?? PRICE_MAX}
+                  <button onClick={() => {
+                    updateFilter('minPrice', null);
+                    updateFilter('maxPrice', null);
+                  }}>
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -358,8 +392,8 @@ export default function ProductListingPage() {
           <div className="flex-1">
             {isLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <ProductCardSkeleton key={i} />
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductCardSkeleton key={`skeleton-${i}`} />
                 ))}
               </div>
             ) : error ? (
@@ -389,13 +423,13 @@ export default function ProductListingPage() {
                 }`}
               >
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={`product-${product.id}`} product={product} />
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} variant="compact" />
+                  <ProductCard key={`product-${product.id}`} product={product} variant="compact" />
                 ))}
               </div>
             )}

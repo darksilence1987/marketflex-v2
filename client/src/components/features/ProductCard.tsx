@@ -3,6 +3,7 @@ import { ShoppingCart, Heart, Star, Check, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useCartStore } from '../../store/cartStore';
 import { useUIStore } from '../../store/uiStore';
+import { getImageUrl } from '../../lib/utils';
 import type { Product } from '../../hooks/useProducts';
 
 interface ProductCardProps {
@@ -25,7 +26,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       id: String(product.id),
       name: product.name,
       price: product.price,
-      image: product.imageUrl,
+      image: getImageUrl(product.imageUrl),
       vendor: 'MarketFlex',
     });
     openCartDrawer();
@@ -44,7 +45,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
         <Link to={`/product/${product.id}`} className="flex-shrink-0">
           <div className="w-20 h-20 rounded-lg overflow-hidden bg-slate-800">
             <img
-              src={product.imageUrl}
+              src={getImageUrl(product.imageUrl)}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform"
             />
@@ -78,7 +79,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       {/* Image */}
       <Link to={`/product/${product.id}`} className="block relative aspect-square overflow-hidden">
         <img
-          src={product.imageUrl}
+          src={getImageUrl(product.imageUrl)}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />

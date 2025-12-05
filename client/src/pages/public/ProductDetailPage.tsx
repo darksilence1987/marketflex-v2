@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
   RefreshCw,
   Store,
   Package,
+  Loader2,
 } from 'lucide-react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
@@ -23,18 +25,23 @@ import { AuthDrawer } from '../../components/features/AuthDrawer';
 import { CartDrawer } from '../../components/features/CartDrawer';
 import { ProductCard } from '../../components/features/ProductCard';
 import { Button } from '../../components/ui/Button';
-import { useProduct, mockProducts } from '../../hooks/useProducts';
+import { useProduct, mockProducts, type Product } from '../../hooks/useProducts';
 import { useCartStore } from '../../store/cartStore';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import { getImageUrl } from '../../lib/utils';
+import api from '../../lib/axios';
 
 // Mock additional images for gallery
-const getGalleryImages = (mainImage: string) => [
-  mainImage,
-  mainImage.replace('w=600', 'w=800'),
-  mainImage.replace('w=600', 'w=500'),
-  mainImage.replace('w=600', 'w=700'),
-];
+const getGalleryImages = (mainImage: string) => {
+  const url = getImageUrl(mainImage);
+  return [
+    url,
+    url.includes('unsplash') ? url.replace('w=600', 'w=800') : url,
+    url.includes('unsplash') ? url.replace('w=600', 'w=500') : url,
+    url.includes('unsplash') ? url.replace('w=600', 'w=700') : url,
+  ];
+};
 
 // Mock specifications
 const specifications = [
@@ -112,7 +119,7 @@ export default function ProductDetailPage() {
         id: String(productData.id),
         name: productData.name,
         price: productData.price,
-        image: productData.imageUrl,
+        image: getImageUrl(productData.imageUrl),
         vendor: 'MarketFlex',
       });
     }
@@ -141,10 +148,27 @@ export default function ProductDetailPage() {
     );
   };
 
-  // Related products (mock)
-  const relatedProducts = mockProducts
-    .filter((p) => p.id !== Number(id) && p.categoryId === productData?.categoryId)
-    .slice(0, 4);
+  // Fetch related products from API
+  const { data: relatedProductsData, isLoading: isLoadingRelated } = useQuery({
+    queryKey: ['related-products', productData?.categoryId, id],
+    queryFn: async () => {
+      if (!productData?.categoryId) return [];
+      try {
+        const { data } = await api.get<Product[]>(`/products?categoryId=${productData.categoryId}`);
+        // Filter out current product and limit to 4
+        return data.filter((p) => p.id !== Number(id)).slice(0, 4);
+      } catch {
+        // Fallback to mock data
+        return mockProducts
+          .filter((p) => p.id !== Number(id) && p.categoryId === productData?.categoryId)
+          .slice(0, 4);
+      }
+    },
+    enabled: !!productData?.categoryId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const relatedProducts = relatedProductsData ?? [];
 
   if (isLoading) {
     return (
@@ -558,14 +582,20 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {(relatedProducts.length > 0 || isLoadingRelated) && (
           <div>
             <h2 className="text-2xl font-bold text-white mb-6">Related Products</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {relatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            {isLoadingRelated ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {relatedProducts.map((product) => (
+                  <ProductCard key={`related-${product.id}`} product={product} />
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

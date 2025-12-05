@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
+import { getImageUrl } from '../../lib/utils';
 
 export function CartDrawer() {
   const { isCartDrawerOpen, closeCartDrawer, openAuthDrawer } = useUIStore();
@@ -63,7 +64,7 @@ export function CartDrawer() {
                   {/* Product Image */}
                   <div className="w-20 h-20 rounded-lg overflow-hidden bg-slate-800 flex-shrink-0">
                     <img
-                      src={item.image}
+                      src={getImageUrl(item.image)}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
