@@ -35,8 +35,8 @@ export const useAuthStore = create<AuthState>()(
           token,
           isAuthenticated: true,
         });
-        // Fetch cart from backend immediately after login
-        useCartStore.getState().fetchCart();
+        // Sync cart on login - pushes local items first, then fetches merged cart
+        useCartStore.getState().syncCartOnLogin();
       },
       logout: () => {
         // Clear cart on logout
