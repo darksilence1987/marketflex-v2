@@ -160,7 +160,7 @@ export function Navbar() {
                             My Account
                           </a>
                           <a
-                            href="/orders"
+                            href="/account/orders"
                             className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
                           >
                             <Package className="w-4 h-4" />
