@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.xhite.marketflex.dto.AuthResponse;
 import org.xhite.marketflex.dto.LoginRequest;
 import org.xhite.marketflex.dto.RegisterRequest;
+import org.xhite.marketflex.dto.UpdateProfileRequest;
 import org.xhite.marketflex.model.AppUser;
 import org.xhite.marketflex.repository.UserRepository;
 import org.xhite.marketflex.security.CustomUserDetailsService;
@@ -164,6 +165,33 @@ public class AuthController {
         return ResponseEntity.ok(AuthResponse.builder()
             .token(jwt)
             .tokenType("Bearer")
+            .email(user.getEmail())
+            .firstName(user.getFirstName())
+            .lastName(user.getLastName())
+            .role(primaryRole)
+            .phone(user.getPhoneNumber())
+            .street(user.getStreet())
+            .city(user.getCity())
+            .state(user.getState())
+            .zipCode(user.getZipCode())
+            .country(user.getCountry())
+            .build());
+    }
+
+    /**
+     * PUT /api/v1/auth/profile - Update user profile
+     */
+    @PutMapping("/profile")
+    public ResponseEntity<AuthResponse> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request) {
+        AppUser user = userService.updateProfile(request);
+        
+        String primaryRole = user.getRoles().stream()
+            .findFirst()
+            .map(Enum::name)
+            .orElse("CUSTOMER");
+        
+        return ResponseEntity.ok(AuthResponse.builder()
             .email(user.getEmail())
             .firstName(user.getFirstName())
             .lastName(user.getLastName())

@@ -3,6 +3,7 @@ package org.xhite.marketflex.service.impl;
 import org.springframework.stereotype.Service;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.xhite.marketflex.dto.RegisterRequest;
+import org.xhite.marketflex.dto.UpdateProfileRequest;
 import org.xhite.marketflex.model.AppUser;
 import org.xhite.marketflex.model.enums.Role;
 import org.xhite.marketflex.repository.UserRepository;
@@ -57,5 +58,38 @@ public class UserServiceImpl implements UserService {
         log.info("Registering new user: {}", request.email());
         return userRepository.save(user);
     }
-}
 
+    @Override
+    public AppUser updateProfile(UpdateProfileRequest request) {
+        AppUser user = getCurrentUser();
+        
+        // Update only non-null fields
+        if (request.firstName() != null && !request.firstName().isBlank()) {
+            user.setFirstName(request.firstName());
+        }
+        if (request.lastName() != null && !request.lastName().isBlank()) {
+            user.setLastName(request.lastName());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber());
+        }
+        if (request.street() != null) {
+            user.setStreet(request.street());
+        }
+        if (request.city() != null) {
+            user.setCity(request.city());
+        }
+        if (request.state() != null) {
+            user.setState(request.state());
+        }
+        if (request.zipCode() != null) {
+            user.setZipCode(request.zipCode());
+        }
+        if (request.country() != null) {
+            user.setCountry(request.country());
+        }
+
+        log.info("Updating profile for user: {}", user.getEmail());
+        return userRepository.save(user);
+    }
+}
