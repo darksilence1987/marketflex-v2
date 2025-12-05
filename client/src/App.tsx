@@ -1,25 +1,86 @@
-function App() {
-    return (
-        // Tailwind sınıfları: tam ekran yükseklik (min-h-screen),
-        // koyu arka plan (bg-slate-900), beyaz yazı (text-white)
-        <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center gap-4">
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import { useAuthStore } from './store/authStore';
 
-            <h1 className="text-6xl font-bold text-blue-500 animate-pulse">
-                MarketFlex v2 🚀
-            </h1>
-
-            <div className="p-6 bg-slate-800 rounded-xl shadow-lg border border-slate-700">
-                <p className="text-xl text-gray-300">
-                    Tailwind v4 Motoru: <span className="text-green-400 font-mono">AKTİF</span>
-                </p>
-            </div>
-
-            <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors font-semibold">
-                Sisteme Giriş Yap
-            </button>
-
-        </div>
-    )
+// Protected Route Component
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
 }
 
-export default App
+// Dashboard placeholder
+function Dashboard() {
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center gap-6 p-8">
+      <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-3xl font-bold shadow-xl shadow-emerald-500/30">
+        {user?.firstName?.[0]}{user?.lastName?.[0]}
+      </div>
+      
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">
+          Welcome, {user?.firstName}! 🎉
+        </h1>
+        <p className="text-slate-400">
+          You're now signed in to MarketFlex v2
+        </p>
+      </div>
+
+      <div className="p-6 bg-slate-900/50 rounded-2xl border border-slate-800 space-y-4 max-w-md w-full">
+        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Account Details</h2>
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <span className="text-slate-400">Email</span>
+            <span className="text-white font-medium">{user?.email}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Role</span>
+            <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-md uppercase">
+              {user?.role}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={logout}
+        className="mt-4 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-white font-medium transition-all duration-200"
+      >
+        Sign Out
+      </button>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch-all redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
