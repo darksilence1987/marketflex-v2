@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useCartStore } from './cartStore';
 
 export interface User {
   email: string;
   firstName: string;
   lastName: string;
   role: string;
+  phone?: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
 }
 
 export interface AuthState {
@@ -22,21 +29,28 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      login: (user, token) =>
+      login: (user, token) => {
         set({
           user,
           token,
           isAuthenticated: true,
-        }),
-      logout: () =>
+        });
+        // Fetch cart from backend immediately after login
+        useCartStore.getState().fetchCart();
+      },
+      logout: () => {
+        // Clear cart on logout
+        useCartStore.getState().clearCart();
         set({
           user: null,
           token: null,
           isAuthenticated: false,
-        }),
+        });
+      },
     }),
     {
       name: 'auth-storage',
     }
   )
 );
+

@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LandingPage from './pages/LandingPage';
 import ProductListingPage from './pages/public/ProductListingPage';
 import ProductDetailPage from './pages/public/ProductDetailPage';
+import CheckoutPage from './pages/checkout/CheckoutPage';
+import OrderSuccessPage from './pages/checkout/OrderSuccessPage';
 import { useAuthStore } from './store/authStore';
 
 // Create a client
@@ -88,6 +90,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/order-success/:id"
+            element={
+              <ProtectedRoute>
+                <OrderSuccessPage />
               </ProtectedRoute>
             }
           />

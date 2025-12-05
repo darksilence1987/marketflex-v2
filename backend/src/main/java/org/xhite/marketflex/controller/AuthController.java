@@ -67,6 +67,12 @@ public class AuthController {
             .firstName(user.getFirstName())
             .lastName(user.getLastName())
             .role(primaryRole)
+            .phone(user.getPhoneNumber())
+            .street(user.getStreet())
+            .city(user.getCity())
+            .state(user.getState())
+            .zipCode(user.getZipCode())
+            .country(user.getCountry())
             .build());
     }
 
@@ -99,6 +105,12 @@ public class AuthController {
             .firstName(user.getFirstName())
             .lastName(user.getLastName())
             .role(primaryRole)
+            .phone(user.getPhoneNumber())
+            .street(user.getStreet())
+            .city(user.getCity())
+            .state(user.getState())
+            .zipCode(user.getZipCode())
+            .country(user.getCountry())
             .build());
     }
 
@@ -121,6 +133,12 @@ public class AuthController {
             .firstName(user.getFirstName())
             .lastName(user.getLastName())
             .role(primaryRole)
+            .phone(user.getPhoneNumber())
+            .street(user.getStreet())
+            .city(user.getCity())
+            .state(user.getState())
+            .zipCode(user.getZipCode())
+            .country(user.getCountry())
             .build());
     }
 
@@ -150,6 +168,12 @@ public class AuthController {
             .firstName(user.getFirstName())
             .lastName(user.getLastName())
             .role(primaryRole)
+            .phone(user.getPhoneNumber())
+            .street(user.getStreet())
+            .city(user.getCity())
+            .state(user.getState())
+            .zipCode(user.getZipCode())
+            .country(user.getCountry())
             .build());
     }
 }
