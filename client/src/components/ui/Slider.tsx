@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface DualRangeSliderProps {
   min: number;
@@ -23,15 +23,15 @@ export function DualRangeSlider({
 }: DualRangeSliderProps) {
   const [localMin, setLocalMin] = useState(minValue ?? min);
   const [localMax, setLocalMax] = useState(maxValue ?? max);
-  const [isDragging, setIsDragging] = useState(false);
+  const minInputRef = useRef<HTMLInputElement>(null);
+  const maxInputRef = useRef<HTMLInputElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   // Update local state when props change
   useEffect(() => {
-    if (!isDragging) {
-      setLocalMin(minValue ?? min);
-      setLocalMax(maxValue ?? max);
-    }
-  }, [minValue, maxValue, min, max, isDragging]);
+    setLocalMin(minValue ?? min);
+    setLocalMax(maxValue ?? max);
+  }, [minValue, maxValue, min, max]);
 
   // Calculate percentage for styling
   const minPercent = ((localMin - min) / (max - min)) * 100;
@@ -40,21 +40,37 @@ export function DualRangeSlider({
   const handleMinChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.min(Number(e.target.value), localMax - step);
     setLocalMin(value);
-  }, [localMax, step]);
+    onChange({ min: value, max: localMax });
+  }, [localMax, step, onChange]);
 
   const handleMaxChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.max(Number(e.target.value), localMin + step);
     setLocalMax(value);
-  }, [localMin, step]);
+    onChange({ min: localMin, max: value });
+  }, [localMin, step, onChange]);
 
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-    onChange({ min: localMin, max: localMax });
-  }, [localMin, localMax, onChange]);
-
-  const handleMouseDown = useCallback(() => {
-    setIsDragging(true);
-  }, []);
+  // Determine which slider to prioritize based on click position
+  const handleTrackClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!trackRef.current) return;
+    
+    const rect = trackRef.current.getBoundingClientRect();
+    const clickPercent = ((e.clientX - rect.left) / rect.width) * 100;
+    const clickValue = min + (clickPercent / 100) * (max - min);
+    
+    // Determine which handle is closer
+    const distToMin = Math.abs(clickValue - localMin);
+    const distToMax = Math.abs(clickValue - localMax);
+    
+    if (distToMin < distToMax) {
+      const newMin = Math.min(Math.round(clickValue / step) * step, localMax - step);
+      setLocalMin(newMin);
+      onChange({ min: newMin, max: localMax });
+    } else {
+      const newMax = Math.max(Math.round(clickValue / step) * step, localMin + step);
+      setLocalMax(newMax);
+      onChange({ min: localMin, max: newMax });
+    }
+  }, [min, max, step, localMin, localMax, onChange]);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -70,59 +86,113 @@ export function DualRangeSlider({
       </div>
 
       {/* Slider Track */}
-      <div className="relative h-2 bg-slate-800 rounded-full">
+      <div 
+        ref={trackRef}
+        className="relative h-6 cursor-pointer"
+        onClick={handleTrackClick}
+      >
+        {/* Track Background */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-slate-800 rounded-full" />
+        
         {/* Active Range */}
         <div
-          className="absolute h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
+          className="absolute top-1/2 -translate-y-1/2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full pointer-events-none"
           style={{
             left: `${minPercent}%`,
             width: `${maxPercent - minPercent}%`,
           }}
         />
 
-        {/* Min Slider */}
+        {/* Min Slider Input */}
         <input
+          ref={minInputRef}
           type="range"
           min={min}
           max={max}
           step={step}
           value={localMin}
           onChange={handleMinChange}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchEnd={handleMouseUp}
-          className="absolute w-full h-full appearance-none bg-transparent cursor-pointer pointer-events-auto z-10 slider-thumb"
+          className="absolute top-0 left-0 w-full h-full appearance-none bg-transparent cursor-pointer z-10"
           style={{ 
             WebkitAppearance: 'none',
-            pointerEvents: 'auto',
+            pointerEvents: 'none',
           }}
         />
 
-        {/* Max Slider */}
+        {/* Max Slider Input */}
         <input
+          ref={maxInputRef}
           type="range"
           min={min}
           max={max}
           step={step}
           value={localMax}
           onChange={handleMaxChange}
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchEnd={handleMouseUp}
-          className="absolute w-full h-full appearance-none bg-transparent cursor-pointer pointer-events-auto z-20 slider-thumb"
-          style={{ WebkitAppearance: 'none' }}
+          className="absolute top-0 left-0 w-full h-full appearance-none bg-transparent cursor-pointer z-20"
+          style={{ 
+            WebkitAppearance: 'none',
+            pointerEvents: 'none',
+          }}
         />
 
-        {/* Thumb indicators (visual) */}
+        {/* Min Thumb (Visual & Interactive) */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-emerald-500 pointer-events-none z-30 transition-transform hover:scale-110"
+          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-emerald-500 cursor-grab active:cursor-grabbing z-30 hover:scale-110 transition-transform"
           style={{ left: `calc(${minPercent}% - 10px)` }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startValue = localMin;
+            
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+              if (!trackRef.current) return;
+              const rect = trackRef.current.getBoundingClientRect();
+              const deltaPercent = ((moveEvent.clientX - startX) / rect.width) * 100;
+              const deltaValue = (deltaPercent / 100) * (max - min);
+              const newValue = Math.max(min, Math.min(startValue + deltaValue, localMax - step));
+              const snappedValue = Math.round(newValue / step) * step;
+              setLocalMin(snappedValue);
+            };
+            
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+              onChange({ min: localMin, max: localMax });
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+          }}
         />
+
+        {/* Max Thumb (Visual & Interactive) */}
         <div
-          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-emerald-500 pointer-events-none z-30 transition-transform hover:scale-110"
+          className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg border-2 border-emerald-500 cursor-grab active:cursor-grabbing z-30 hover:scale-110 transition-transform"
           style={{ left: `calc(${maxPercent}% - 10px)` }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            const startX = e.clientX;
+            const startValue = localMax;
+            
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+              if (!trackRef.current) return;
+              const rect = trackRef.current.getBoundingClientRect();
+              const deltaPercent = ((moveEvent.clientX - startX) / rect.width) * 100;
+              const deltaValue = (deltaPercent / 100) * (max - min);
+              const newValue = Math.max(localMin + step, Math.min(startValue + deltaValue, max));
+              const snappedValue = Math.round(newValue / step) * step;
+              setLocalMax(snappedValue);
+            };
+            
+            const handleMouseUp = () => {
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+              onChange({ min: localMin, max: localMax });
+            };
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+          }}
         />
       </div>
 
@@ -131,35 +201,6 @@ export function DualRangeSlider({
         <span>{formatLabel(min)}</span>
         <span>{formatLabel(max)}</span>
       </div>
-
-      {/* Custom Slider Styles */}
-      <style>{`
-        .slider-thumb::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: transparent;
-          cursor: pointer;
-          pointer-events: auto;
-        }
-        .slider-thumb::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: transparent;
-          cursor: pointer;
-          border: none;
-          pointer-events: auto;
-        }
-        .slider-thumb::-webkit-slider-runnable-track {
-          background: transparent;
-        }
-        .slider-thumb::-moz-range-track {
-          background: transparent;
-        }
-      `}</style>
     </div>
   );
 }
@@ -194,9 +235,10 @@ export function Slider({
         <span className="text-sm text-slate-400">{formatLabel(max)}</span>
       </div>
 
-      <div className="relative h-2 bg-slate-800 rounded-full">
+      <div className="relative h-6">
+        <div className="absolute top-1/2 -translate-y-1/2 left-0 right-0 h-2 bg-slate-800 rounded-full" />
         <div
-          className="absolute h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
+          className="absolute top-1/2 -translate-y-1/2 h-2 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
           style={{ width: `${percent}%` }}
         />
         <input
@@ -206,7 +248,7 @@ export function Slider({
           step={step}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="absolute w-full h-full appearance-none bg-transparent cursor-pointer slider-thumb"
+          className="absolute top-0 left-0 w-full h-full appearance-none bg-transparent cursor-pointer"
           style={{ WebkitAppearance: 'none' }}
         />
         <div

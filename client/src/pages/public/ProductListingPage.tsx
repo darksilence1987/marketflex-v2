@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -51,6 +51,11 @@ const PRICE_MAX = 1000;
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: products, isLoading, error } = useProducts();
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   // Fetch categories from API
   const { data: apiCategories } = useQuery({
