@@ -39,6 +39,10 @@ public class Product {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vendor_id", nullable = false)
+    private Vendor vendor;
+
     @Builder.Default
     @Column(nullable = false)
     private boolean active = true;

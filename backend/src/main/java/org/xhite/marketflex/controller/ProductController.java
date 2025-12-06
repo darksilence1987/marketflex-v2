@@ -26,6 +26,15 @@ public class ProductController {
     private final FileStorageService storageService;
 
     /**
+     * GET /api/v1/products/my-products - Get products for authenticated vendor
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @GetMapping("/my-products")
+    public ResponseEntity<List<ProductDto>> getMyProducts() {
+        return ResponseEntity.ok(productService.getMyProducts());
+    }
+
+    /**
      * GET /api/v1/products - List all products or filter by category
      */
     @GetMapping

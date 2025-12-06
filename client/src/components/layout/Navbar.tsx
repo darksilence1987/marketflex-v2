@@ -15,6 +15,7 @@ import {
   Dumbbell,
   Sparkles,
   BookOpen,
+  Store,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
@@ -159,6 +160,15 @@ export function Navbar() {
                             <User className="w-4 h-4" />
                             My Account
                           </a>
+                          {(user?.role === 'ROLE_VENDOR' || user?.role === 'ROLE_MANAGER' || user?.role === 'ROLE_ADMIN') && (
+                            <a
+                              href="/vendor/dashboard"
+                              className="flex items-center gap-3 px-3 py-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            >
+                              <Store className="w-4 h-4" />
+                              Vendor Dashboard
+                            </a>
+                          )}
                           <a
                             href="/account/orders"
                             className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"

@@ -11,11 +11,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.xhite.marketflex.dto.ProductDto;
 import org.xhite.marketflex.exception.ResourceNotFoundException;
 import org.xhite.marketflex.mapper.ProductMapper;
+import org.xhite.marketflex.model.AppUser;
 import org.xhite.marketflex.model.Category;
 import org.xhite.marketflex.model.Product;
+import org.xhite.marketflex.model.enums.Role;
 import org.xhite.marketflex.repository.CategoryRepository;
 import org.xhite.marketflex.repository.ProductRepository;
+import org.xhite.marketflex.repository.VendorRepository;
 import org.xhite.marketflex.service.ProductService;
+import org.xhite.marketflex.service.UserService;
+import org.springframework.security.access.AccessDeniedException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +34,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final ProductMapper productMapper;
+    private final UserService userService;
+    private final VendorRepository vendorRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,15 +67,21 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto createProduct(@Valid ProductDto productDto) {
         log.info("Creating new product: {}", productDto.name());
 
+        AppUser currentUser = userService.getCurrentUser();
         Category category = categoryRepository.findById(productDto.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.categoryId()));
 
+        // Get vendor for the current user
+        var vendor = vendorRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found. Please create a vendor profile first."));
+
         Product product = new Product();
         updateProductFromDto(product, productDto, category);
+        product.setVendor(vendor);
         product.setActive(true);
 
         Product savedProduct = productRepository.save(product);
-        log.info("Created new product with ID: {}", savedProduct.getId());
+        log.info("Created new product with ID: {} by vendor: {}", savedProduct.getId(), vendor.getStoreName());
 
         return convertToDto(savedProduct);
     }
@@ -78,8 +91,15 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto updateProduct(Long id, @Valid ProductDto productDto) {
         log.info("Updating product with ID: {}", id);
 
+        AppUser currentUser = userService.getCurrentUser();
         Product existingProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        // Ownership check: VENDORs/MANAGERs can only update their own products, ADMINs bypass
+        if (!currentUser.hasRole(Role.ADMIN) && !existingProduct.getVendor().getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only update your own products");
+        }
+
         boolean active = existingProduct.isActive();
         Category category = categoryRepository.findById(productDto.categoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.categoryId()));
@@ -87,7 +107,7 @@ public class ProductServiceImpl implements ProductService {
         updateProductFromDto(existingProduct, productDto, category);
         existingProduct.setActive(active);
         Product updatedProduct = productRepository.save(existingProduct);
-        log.info("Updated product: {}", updatedProduct.getName());
+        log.info("Updated product: {} by user: {}", updatedProduct.getName(), currentUser.getEmail());
 
         return convertToDto(updatedProduct);
     }
@@ -95,13 +115,19 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public void deleteProduct(Long id) {
+        AppUser currentUser = userService.getCurrentUser();
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        // Ownership check: VENDORs/MANAGERs can only delete their own products, ADMINs bypass
+        if (!currentUser.hasRole(Role.ADMIN) && !product.getVendor().getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only delete your own products");
+        }
 
         product.setActive(false);
         product.setUpdatedAt(LocalDateTime.now());
         productRepository.save(product);
-        log.info("Product soft deleted: {}", product.getName());
+        log.info("Product soft deleted: {} by user: {}", product.getName(), currentUser.getEmail());
     }
 
     @Override
@@ -162,6 +188,8 @@ public class ProductServiceImpl implements ProductService {
                 .categoryName(product.getCategory().getName())
                 .imageUrl(product.getImageUrl())
                 .active(product.isActive())
+                .vendorId(product.getVendor() != null ? product.getVendor().getId() : null)
+                .vendorStoreName(product.getVendor() != null ? product.getVendor().getStoreName() : null)
                 .build();
     }
 
@@ -198,6 +226,24 @@ public class ProductServiceImpl implements ProductService {
         product.setUpdatedAt(LocalDateTime.now());
         productRepository.save(product);
         log.info("Updated stock for product: {}, new stock: {}", product.getName(), newStock);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductDto> getProductsByVendor(Long vendorId) {
+        return productRepository.findByVendorIdAndActiveTrue(vendorId)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductDto> getMyProducts() {
+        AppUser currentUser = userService.getCurrentUser();
+        var vendor = vendorRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found for current user"));
+        return getProductsByVendor(vendor.getId());
     }
 
 }

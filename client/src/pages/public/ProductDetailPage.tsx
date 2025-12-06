@@ -125,7 +125,7 @@ export default function ProductDetailPage() {
         name: productData.name,
         price: productData.price,
         image: getImageUrl(productData.imageUrl),
-        vendor: 'MarketFlex',
+        vendor: productData.vendorStoreName || 'MarketFlex',
       });
     }
     openCartDrawer();
@@ -369,11 +369,16 @@ export default function ProductDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-slate-400">Sold by</p>
-                <p className="font-semibold text-white">MarketFlex Official</p>
+                <p className="font-semibold text-white">{productData.vendorStoreName || 'MarketFlex Official'}</p>
               </div>
-              <Button variant="outline" size="sm" className="ml-auto">
-                Visit Store
-              </Button>
+              <Link 
+                to={`/store/${encodeURIComponent(productData.vendorStoreName || 'MarketFlex Official')}`}
+                className="ml-auto"
+              >
+                <Button variant="outline" size="sm">
+                  Visit Store
+                </Button>
+              </Link>
             </div>
 
             {/* Quantity & Add to Cart */}

@@ -8,6 +8,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.xhite.marketflex.model.enums.Role;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -19,6 +20,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import jakarta.validation.constraints.Email;
@@ -113,6 +115,9 @@ public class AppUser {
     @Column(length = 50)
     private String country;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Vendor vendor;
+
     // Utility methods
     public boolean hasRole(Role role) {
         return roles.contains(role);
@@ -136,6 +141,10 @@ public class AppUser {
 
     public boolean isCustomer() {
         return hasRole(Role.CUSTOMER);
+    }
+
+    public boolean isVendor() {
+        return hasRole(Role.VENDOR);
     }
 
     public boolean isCredentialsNonExpired() {

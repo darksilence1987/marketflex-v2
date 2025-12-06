@@ -27,7 +27,7 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
       name: product.name,
       price: product.price,
       image: getImageUrl(product.imageUrl),
-      vendor: 'MarketFlex',
+      vendor: product.vendorStoreName || 'MarketFlex',
     });
     openCartDrawer();
   };

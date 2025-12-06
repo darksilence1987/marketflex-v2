@@ -8,6 +8,8 @@ import OrderSuccessPage from './pages/checkout/OrderSuccessPage';
 import AccountLayout from './pages/account/AccountLayout';
 import ProfilePage from './pages/account/ProfilePage';
 import OrdersPage from './pages/account/OrdersPage';
+import VendorDashboard from './pages/vendor/VendorDashboard';
+import VendorStorePage from './pages/vendor/VendorStorePage';
 import { useAuthStore } from './store/authStore';
 
 // Create a client
@@ -72,6 +74,19 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="orders" element={<OrdersPage />} />
           </Route>
+
+          {/* Vendor Routes */}
+          <Route
+            path="/vendor/dashboard"
+            element={
+              <ProtectedRoute>
+                <VendorDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Public Store Page */}
+          <Route path="/store/:storeName" element={<VendorStorePage />} />
 
           {/* Legacy redirect */}
           <Route path="/dashboard" element={<Navigate to="/account/profile" replace />} />

@@ -12,6 +12,8 @@ export interface Product {
   categoryName: string;
   imageUrl: string;
   active: boolean;
+  vendorId?: number;
+  vendorStoreName?: string;
 }
 
 export interface ProductFilters {
@@ -39,6 +41,11 @@ async function fetchCategories(): Promise<{ id: number; name: string }[]> {
   return data;
 }
 
+async function fetchMyProducts(): Promise<Product[]> {
+  const { data } = await api.get<Product[]>('/products/my-products');
+  return data;
+}
+
 // Hooks
 export function useProducts() {
   return useQuery({
@@ -61,6 +68,14 @@ export function useCategories() {
     queryKey: ['categories'],
     queryFn: fetchCategories,
     staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+}
+
+export function useMyProducts() {
+  return useQuery({
+    queryKey: ['my-products'],
+    queryFn: fetchMyProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
 

@@ -20,4 +20,6 @@ public interface ProductService {
     ProductDto convertToDto(Product product);
     boolean isProductAvailable(Long productId, Integer quantity);
     void updateStock(Long productId, Integer quantity);
+    List<ProductDto> getProductsByVendor(Long vendorId);
+    List<ProductDto> getMyProducts();
 }
