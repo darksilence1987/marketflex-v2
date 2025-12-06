@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -18,6 +18,9 @@ import {
   TrendingUp,
   Award,
   Loader2,
+  Package,
+  Car,
+  Gamepad2,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Navbar } from '../components/layout/Navbar';
@@ -36,6 +39,13 @@ interface Category {
   name: string;
   imageUrl?: string;
   productCount?: number;
+}
+
+interface Vendor {
+  id: number;
+  storeName: string;
+  storeDescription?: string;
+  contactEmail?: string;
 }
 
 // Hero slides (static content)
@@ -65,35 +75,28 @@ const categoryIcons: Record<string, typeof Laptop> = {
   'Electronics': Laptop,
   'Fashion': Shirt,
   'Home & Living': Home,
-  'Sports': Dumbbell,
+  'Sports & Fitness': Dumbbell,
   'Beauty': Sparkles,
   'Books': BookOpen,
+  'Toys & Games': Gamepad2,
+  'Automotive': Car,
 };
 
 const categoryColors: Record<string, string> = {
   'Electronics': 'from-blue-500 to-blue-600',
   'Fashion': 'from-pink-500 to-rose-600',
   'Home & Living': 'from-amber-500 to-orange-600',
-  'Sports': 'from-green-500 to-emerald-600',
+  'Sports & Fitness': 'from-green-500 to-emerald-600',
   'Beauty': 'from-purple-500 to-violet-600',
   'Books': 'from-cyan-500 to-teal-600',
+  'Toys & Games': 'from-indigo-500 to-indigo-600',
+  'Automotive': 'from-red-500 to-red-600',
 };
-
-// Fallback vendors (static)
-const vendors = [
-  { name: 'TechPro', logo: 'https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=100&q=80', rating: 4.9, products: 234 },
-  { name: 'StyleHub', logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&q=80', rating: 4.8, products: 567 },
-  { name: 'HomeNest', logo: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=100&q=80', rating: 4.7, products: 189 },
-  { name: 'FitGear', logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=100&q=80', rating: 4.9, products: 432 },
-  { name: 'GlowUp', logo: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100&q=80', rating: 4.6, products: 321 },
-  { name: 'BookWorm', logo: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=100&q=80', rating: 4.8, products: 890 },
-];
 
 // API fetchers
 async function fetchFeaturedProducts(): Promise<Product[]> {
   try {
     const { data } = await api.get<Product[]>('/products');
-    // Return first 8 products (or filter by featured if backend supports)
     return data.slice(0, 8);
   } catch {
     return [];
@@ -103,7 +106,18 @@ async function fetchFeaturedProducts(): Promise<Product[]> {
 async function fetchCategories(): Promise<Category[]> {
   try {
     const { data } = await api.get<Category[]>('/categories');
-    return data.slice(0, 6);
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchVendors(): Promise<Vendor[]> {
+  try {
+    const { data } = await api.get<Vendor[]>('/vendors/all');
+    // Shuffle vendors for random display
+    const shuffled = data.sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 6);
   } catch {
     return [];
   }
@@ -111,6 +125,7 @@ async function fetchCategories(): Promise<Category[]> {
 
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [categorySlide, setCategorySlide] = useState(0);
   const addToCart = useCartStore((state) => state.addItem);
   const openCartDrawer = useUIStore((state) => state.openCartDrawer);
 
@@ -128,13 +143,29 @@ export default function LandingPage() {
     staleTime: 1000 * 60 * 30,
   });
 
+  // Fetch vendors from backend
+  const { data: vendors = [] } = useQuery({
+    queryKey: ['featured-vendors'],
+    queryFn: fetchVendors,
+    staleTime: 1000 * 60 * 30,
+  });
+
+  // Category carousel auto-slide
+  useEffect(() => {
+    if (categories.length <= 3) return;
+    const timer = setInterval(() => {
+      setCategorySlide(prev => (prev + 1) % Math.ceil(categories.length / 3));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [categories.length]);
+
   const handleAddToCart = (product: Product) => {
     addToCart({
       id: String(product.id),
       name: product.name,
       price: product.price,
       image: getImageUrl(product.imageUrl),
-      vendor: 'MarketFlex',
+      vendor: product.vendorStoreName || 'MarketFlex',
     });
     openCartDrawer();
   };
@@ -142,8 +173,16 @@ export default function LandingPage() {
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
 
+  // Category carousel controls
+  const maxCategorySlides = Math.max(1, Math.ceil(categories.length / 3));
+  const nextCategorySlide = () => setCategorySlide(prev => (prev + 1) % maxCategorySlides);
+  const prevCategorySlide = () => setCategorySlide(prev => (prev - 1 + maxCategorySlides) % maxCategorySlides);
+
+  // Get visible categories (3 at a time)
+  const visibleCategories = categories.slice(categorySlide * 3, categorySlide * 3 + 3);
+
   // Get category icon and color
-  const getCategoryIcon = (name: string) => categoryIcons[name] || Laptop;
+  const getCategoryIcon = (name: string) => categoryIcons[name] || Package;
   const getCategoryColor = (name: string) => categoryColors[name] || 'from-slate-500 to-slate-600';
 
   return (
@@ -298,7 +337,7 @@ export default function LandingPage() {
         `}</style>
       </section>
 
-      {/* Categories Bento Grid */}
+      {/* Categories Carousel */}
       <section className="py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-end justify-between mb-12">
@@ -322,52 +361,76 @@ export default function LandingPage() {
               <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {(categories.length > 0 ? categories : [
-                { id: 1, name: 'Electronics' },
-                { id: 2, name: 'Fashion' },
-                { id: 3, name: 'Home & Living' },
-                { id: 4, name: 'Sports' },
-                { id: 5, name: 'Beauty' },
-                { id: 6, name: 'Books' },
-              ]).map((category, i) => {
-                const Icon = getCategoryIcon(category.name);
-                const color = getCategoryColor(category.name);
-                return (
-                  <Link
-                    key={category.id}
-                    to={`/products?category=${category.id}`}
-                    className={`group relative overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 transition-all hover:border-slate-700 hover:scale-[1.02] ${
-                      i === 0 ? 'md:col-span-2 md:row-span-2' : ''
-                    }`}
-                  >
-                    {/* Background Image */}
-                    <div className={`absolute inset-0 ${i === 0 ? 'h-full' : 'h-32'}`}>
-                      <img
-                        src={getImageUrl(category.imageUrl)}
-                        alt={category.name}
-                        className="w-full h-full object-cover opacity-30 group-hover:opacity-40 transition-opacity"
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-t ${color} opacity-20`} />
-                    </div>
-
-                    {/* Content */}
-                    <div className={`relative p-6 ${i === 0 ? 'h-full flex flex-col justify-end' : ''}`}>
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6 text-white" />
+            <div className="relative">
+              {/* Category Cards - 3 visible at a time with equal sizes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[280px]">
+                {visibleCategories.map((category) => {
+                  const Icon = getCategoryIcon(category.name);
+                  const color = getCategoryColor(category.name);
+                  return (
+                    <Link
+                      key={category.id}
+                      to={`/products?category=${category.id}`}
+                      className="group relative h-64 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 transition-all hover:border-slate-700 hover:scale-[1.02]"
+                    >
+                      {/* Background Image */}
+                      <div className="absolute inset-0">
+                        <img
+                          src={getImageUrl(category.imageUrl)}
+                          alt={category.name}
+                          className="w-full h-full object-cover opacity-40 group-hover:opacity-50 transition-opacity"
+                        />
+                        <div className={`absolute inset-0 bg-gradient-to-t ${color} opacity-30`} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent" />
                       </div>
-                      <h3 className="text-lg font-semibold text-white mb-1">{category.name}</h3>
-                      <p className="text-sm text-slate-400">{category.productCount || '100+'} products</p>
-                    </div>
-                  </Link>
-                );
-              })}
+
+                      {/* Content */}
+                      <div className="relative h-full p-6 flex flex-col justify-end">
+                        <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+                          <Icon className="w-7 h-7 text-white" />
+                        </div>
+                        <h3 className="text-xl font-semibold text-white mb-1">{category.name}</h3>
+                        <p className="text-sm text-slate-400">{category.productCount || '100+'} products</p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Carousel Controls */}
+              {categories.length > 3 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                  <button
+                    onClick={prevCategorySlide}
+                    className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <div className="flex gap-2">
+                    {Array.from({ length: maxCategorySlides }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCategorySlide(i)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all ${
+                          i === categorySlide ? 'w-8 bg-emerald-500' : 'bg-slate-700 hover:bg-slate-600'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={nextCategorySlide}
+                    className="w-10 h-10 rounded-full bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-300 transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </section>
 
-      {/* Vendor Spotlight */}
+      {/* Vendor Spotlight - Dynamic with custom scrollbar */}
       <section className="py-16 lg:py-24 bg-slate-900/50 border-y border-slate-800">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
@@ -379,27 +442,62 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="flex gap-6 overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory scrollbar-hide">
-            {vendors.map((vendor) => (
-              <a
-                key={vendor.name}
-                href={`/vendor/${vendor.name.toLowerCase()}`}
-                className="flex-shrink-0 w-64 p-6 bg-slate-900 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition-all group snap-start"
-              >
-                <div className="w-16 h-16 rounded-xl overflow-hidden mb-4 ring-2 ring-slate-700 group-hover:ring-emerald-500/50 transition-all">
-                  <img src={vendor.logo} alt={vendor.name} className="w-full h-full object-cover" />
-                </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{vendor.name}</h3>
-                <div className="flex items-center gap-2 mb-2">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span className="text-white font-medium">{vendor.rating}</span>
-                  <span className="text-slate-500">•</span>
-                  <span className="text-slate-400">{vendor.products} products</span>
-                </div>
-                <span className="text-sm text-emerald-400 group-hover:underline">View Store →</span>
-              </a>
-            ))}
+          <div className="relative">
+            <div className="flex gap-6 overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory vendor-scroll">
+              {vendors.length > 0 ? vendors.map((vendor) => (
+                <Link
+                  key={vendor.id}
+                  to={`/store/${vendor.storeName}`}
+                  className="flex-shrink-0 w-64 p-6 bg-slate-900 rounded-2xl border border-slate-800 hover:border-emerald-500/50 transition-all group snap-start"
+                >
+                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center mb-4 ring-2 ring-slate-700 group-hover:ring-emerald-500/50 transition-all">
+                    <span className="text-2xl font-bold text-white">
+                      {vendor.storeName.charAt(0)}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">{vendor.storeName}</h3>
+                  <p className="text-sm text-slate-400 line-clamp-2 mb-3">
+                    {vendor.storeDescription || 'Quality products from a verified seller'}
+                  </p>
+                  <span className="text-sm text-emerald-400 group-hover:underline">View Store →</span>
+                </Link>
+              )) : (
+                // Fallback placeholder vendors
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-64 p-6 bg-slate-900 rounded-2xl border border-slate-800 snap-start"
+                  >
+                    <div className="w-16 h-16 rounded-xl bg-slate-800 animate-pulse mb-4" />
+                    <div className="h-5 bg-slate-800 rounded animate-pulse mb-2 w-3/4" />
+                    <div className="h-4 bg-slate-800 rounded animate-pulse w-1/2" />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
+
+          {/* Custom scrollbar styles */}
+          <style>{`
+            .vendor-scroll {
+              scrollbar-width: thin;
+              scrollbar-color: rgba(16, 185, 129, 0.5) rgba(30, 41, 59, 0.5);
+            }
+            .vendor-scroll::-webkit-scrollbar {
+              height: 6px;
+            }
+            .vendor-scroll::-webkit-scrollbar-track {
+              background: rgba(30, 41, 59, 0.5);
+              border-radius: 10px;
+            }
+            .vendor-scroll::-webkit-scrollbar-thumb {
+              background: linear-gradient(to right, rgba(16, 185, 129, 0.6), rgba(6, 182, 212, 0.6));
+              border-radius: 10px;
+            }
+            .vendor-scroll::-webkit-scrollbar-thumb:hover {
+              background: linear-gradient(to right, rgba(16, 185, 129, 0.8), rgba(6, 182, 212, 0.8));
+            }
+          `}</style>
         </div>
       </section>
 

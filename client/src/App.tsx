@@ -10,6 +10,8 @@ import ProfilePage from './pages/account/ProfilePage';
 import OrdersPage from './pages/account/OrdersPage';
 import VendorDashboard from './pages/vendor/VendorDashboard';
 import VendorStorePage from './pages/vendor/VendorStorePage';
+import WishlistPage from './pages/WishlistPage';
+import FavouriteVendorsPage from './pages/FavouriteVendorsPage';
 import { useAuthStore } from './store/authStore';
 
 // Create a client
@@ -42,6 +44,8 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/products" element={<ProductListingPage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/favourite-vendors" element={<FavouriteVendorsPage />} />
 
           {/* Protected Routes */}
           <Route

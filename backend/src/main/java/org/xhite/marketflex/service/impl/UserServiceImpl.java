@@ -92,4 +92,10 @@ public class UserServiceImpl implements UserService {
         log.info("Updating profile for user: {}", user.getEmail());
         return userRepository.save(user);
     }
+
+    @Override
+    public void updateUserRoles(AppUser user) {
+        log.info("Updating roles for user: {}", user.getEmail());
+        userRepository.save(user);
+    }
 }

@@ -30,9 +30,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // Only clear auth on 401 if there was a token sent (actual auth failure)
+    // Don't trigger redirect - let components handle auth state
+    if (error.response?.status === 401 && error.config?.headers?.Authorization) {
       localStorage.removeItem('auth-storage');
-      window.location.href = '/login';
+      // Reload to reflect logged out state (only if auth was actually attempted)
+      window.location.reload();
     }
     return Promise.reject(error);
   }

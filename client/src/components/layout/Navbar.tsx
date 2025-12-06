@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   ShoppingCart,
@@ -16,20 +18,66 @@ import {
   Sparkles,
   BookOpen,
   Store,
+  Gamepad2,
+  Car,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
+import api from '../../lib/axios';
 
-const categories = [
-  { name: 'Electronics', icon: Laptop, color: 'text-blue-400' },
-  { name: 'Fashion', icon: Shirt, color: 'text-pink-400' },
-  { name: 'Home & Living', icon: Home, color: 'text-amber-400' },
-  { name: 'Sports', icon: Dumbbell, color: 'text-green-400' },
-  { name: 'Beauty', icon: Sparkles, color: 'text-purple-400' },
-  { name: 'Books', icon: BookOpen, color: 'text-cyan-400' },
-];
+// Category icon mapping
+const categoryIcons: Record<string, typeof Laptop> = {
+  'Electronics': Laptop,
+  'Fashion': Shirt,
+  'Home & Living': Home,
+  'Sports & Fitness': Dumbbell,
+  'Beauty': Sparkles,
+  'Books': BookOpen,
+  'Toys & Games': Gamepad2,
+  'Automotive': Car,
+};
+
+const categoryColors: Record<string, string> = {
+  'Electronics': 'text-blue-400',
+  'Fashion': 'text-pink-400',
+  'Home & Living': 'text-amber-400',
+  'Sports & Fitness': 'text-green-400',
+  'Beauty': 'text-purple-400',
+  'Books': 'text-cyan-400',
+  'Toys & Games': 'text-indigo-400',
+  'Automotive': 'text-red-400',
+};
+
+interface Category {
+  id: number;
+  name: string;
+  imageUrl?: string;
+}
+
+interface UserVendor {
+  id: number;
+  storeName: string;
+}
+
+async function fetchCategories(): Promise<Category[]> {
+  try {
+    const { data } = await api.get<Category[]>('/categories');
+    return data;
+  } catch {
+    return [];
+  }
+}
+
+async function fetchMyVendors(): Promise<UserVendor[]> {
+  try {
+    const { data } = await api.get<UserVendor[]>('/vendors/my-stores');
+    return data;
+  } catch {
+    return [];
+  }
+}
 
 export function Navbar() {
   const { openAuthDrawer, openCartDrawer, isMegaMenuOpen, toggleMegaMenu, closeMegaMenu } =
@@ -40,6 +88,28 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Fetch categories dynamically
+  const { data: categories = [] } = useQuery({
+    queryKey: ['navbar-categories'],
+    queryFn: fetchCategories,
+    staleTime: 1000 * 60 * 30,
+  });
+
+
+  // Fetch user's vendors if authenticated and is vendor
+  // Backend may return role as 'VENDOR' or 'ROLE_VENDOR' depending on context
+  const userRole = user?.role?.replace('ROLE_', '');
+  const isVendor = userRole === 'VENDOR' || userRole === 'MANAGER' || userRole === 'ADMIN';
+  const { data: myVendors = [] } = useQuery({
+    queryKey: ['my-vendors-nav'],
+    queryFn: fetchMyVendors,
+    staleTime: 1000 * 60 * 5,
+    enabled: isAuthenticated && isVendor,
+  });
+
+  const getCategoryIcon = (name: string) => categoryIcons[name] || Package;
+  const getCategoryColor = (name: string) => categoryColors[name] || 'text-slate-400';
 
   return (
     <>
@@ -72,14 +142,14 @@ export function Navbar() {
             </button>
 
             {/* Logo */}
-            <a href="/" className="flex items-center gap-2 flex-shrink-0">
+            <Link to="/" className="flex items-center gap-2 flex-shrink-0">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                 <Package className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-bold text-white hidden sm:block">
                 Market<span className="text-emerald-400">Flex</span>
               </span>
-            </a>
+            </Link>
 
             {/* Categories Dropdown (Desktop) */}
             <div className="relative hidden lg:block">
@@ -107,10 +177,14 @@ export function Navbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              {/* Wishlist (Desktop) */}
-              <button className="hidden lg:flex p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all">
+              {/* Favourite Vendors (Desktop) - Heart Icon */}
+              <Link
+                to="/favourite-vendors"
+                className="hidden lg:flex p-2.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all"
+                title="Favourite Vendors"
+              >
                 <Heart className="w-5 h-5" />
-              </button>
+              </Link>
 
               {/* Cart */}
               <button
@@ -145,7 +219,7 @@ export function Navbar() {
                         className="fixed inset-0 z-40"
                         onClick={() => setIsUserMenuOpen(false)}
                       />
-                      <div className="absolute right-0 top-full mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
+                      <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-xl overflow-hidden z-50">
                         <div className="p-4 border-b border-slate-800">
                           <p className="font-medium text-white">
                             {user?.firstName} {user?.lastName}
@@ -153,36 +227,78 @@ export function Navbar() {
                           <p className="text-sm text-slate-400">{user?.email}</p>
                         </div>
                         <div className="p-2">
-                          <a
-                            href="/account"
+                          <Link
+                            to="/account"
+                            onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
                           >
                             <User className="w-4 h-4" />
                             My Account
-                          </a>
-                          {(user?.role === 'ROLE_VENDOR' || user?.role === 'ROLE_MANAGER' || user?.role === 'ROLE_ADMIN') && (
-                            <a
-                              href="/vendor/dashboard"
-                              className="flex items-center gap-3 px-3 py-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
-                            >
-                              <Store className="w-4 h-4" />
-                              Vendor Dashboard
-                            </a>
-                          )}
-                          <a
-                            href="/account/orders"
+                          </Link>
+                          
+                          <Link
+                            to="/account/orders"
+                            onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
                           >
                             <Package className="w-4 h-4" />
-                            Orders
-                          </a>
-                          <a
-                            href="/wishlist"
+                            My Orders
+                          </Link>
+                          
+                          <Link
+                            to="/wishlist"
+                            onClick={() => setIsUserMenuOpen(false)}
                             className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
                           >
                             <Heart className="w-4 h-4" />
                             Wishlist
-                          </a>
+                          </Link>
+                          
+                          <Link
+                            to="/favourite-vendors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                            className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:bg-slate-800 rounded-lg transition-colors"
+                          >
+                            <Store className="w-4 h-4" />
+                            Favourite Vendors
+                          </Link>
+                        </div>
+
+                        {/* Vendor Section */}
+                        {isVendor && (
+                          <div className="border-t border-slate-800 p-2">
+                            <p className="px-3 py-1 text-xs font-medium text-slate-500 uppercase">My Stores</p>
+                            
+                            {myVendors.length > 0 ? (
+                              myVendors.slice(0, 3).map((vendor) => (
+                                <Link
+                                  key={vendor.id}
+                                  to={`/store/${vendor.storeName}`}
+                                  onClick={() => setIsUserMenuOpen(false)}
+                                  className="flex items-center gap-3 px-3 py-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+                                >
+                                  <div className="w-6 h-6 rounded-md bg-emerald-500/20 flex items-center justify-center">
+                                    <span className="text-xs font-bold">{vendor.storeName.charAt(0)}</span>
+                                  </div>
+                                  <span className="truncate text-sm">{vendor.storeName}</span>
+                                </Link>
+                              ))
+                            ) : (
+                              <p className="px-3 py-2 text-sm text-slate-500">No stores yet</p>
+                            )}
+                            
+                            <Link
+                              to="/vendor/dashboard"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-3 py-2 text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors font-medium"
+                            >
+                              <Store className="w-4 h-4" />
+                              Vendor Dashboard
+                            </Link>
+                          </div>
+                        )}
+
+                        <div className="border-t border-slate-800 p-2">
                           <button
                             onClick={() => {
                               logout();
@@ -233,7 +349,7 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Mega Menu */}
+        {/* Mega Menu - Dynamic Categories */}
         {isMegaMenuOpen && (
           <>
             <div
@@ -242,22 +358,42 @@ export function Navbar() {
             />
             <div className="absolute left-0 right-0 bg-slate-900 border-t border-b border-slate-800 shadow-2xl z-40">
               <div className="max-w-7xl mx-auto p-8">
-                <div className="grid grid-cols-6 gap-6">
-                  {categories.map((category) => (
-                    <a
-                      key={category.name}
-                      href={`/category/${category.name.toLowerCase()}`}
-                      className="group text-center"
-                      onClick={closeMegaMenu}
-                    >
-                      <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-800 group-hover:bg-slate-700 flex items-center justify-center transition-all group-hover:scale-110 mb-3">
-                        <category.icon className={`w-7 h-7 ${category.color}`} />
+                <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-6">
+                  {categories.length > 0 ? categories.map((category) => {
+                    const Icon = getCategoryIcon(category.name);
+                    const color = getCategoryColor(category.name);
+                    return (
+                      <Link
+                        key={category.id}
+                        to={`/products?category=${category.id}`}
+                        className="group text-center"
+                        onClick={closeMegaMenu}
+                      >
+                        <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-800 group-hover:bg-slate-700 flex items-center justify-center transition-all group-hover:scale-110 mb-3">
+                          {category.imageUrl ? (
+                            <img 
+                              src={category.imageUrl} 
+                              alt={category.name} 
+                              className="w-10 h-10 object-cover rounded-lg"
+                            />
+                          ) : (
+                            <Icon className={`w-7 h-7 ${color}`} />
+                          )}
+                        </div>
+                        <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
+                          {category.name}
+                        </span>
+                      </Link>
+                    );
+                  }) : (
+                    // Loading placeholders
+                    Array.from({ length: 6 }).map((_, i) => (
+                      <div key={i} className="text-center">
+                        <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-800 animate-pulse mb-3" />
+                        <div className="h-4 bg-slate-800 rounded animate-pulse w-16 mx-auto" />
                       </div>
-                      <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
-                        {category.name}
-                      </span>
-                    </a>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -272,7 +408,7 @@ export function Navbar() {
             className="absolute inset-0 bg-black/60"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="absolute top-0 left-0 bottom-0 w-80 bg-slate-900 shadow-xl">
+          <div className="absolute top-0 left-0 bottom-0 w-80 bg-slate-900 shadow-xl overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-800">
               <span className="text-lg font-bold text-white">Menu</span>
               <button
@@ -282,18 +418,45 @@ export function Navbar() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            
+            {/* Mobile Categories */}
             <div className="p-4 space-y-2">
-              {categories.map((category) => (
-                <a
-                  key={category.name}
-                  href={`/category/${category.name.toLowerCase()}`}
-                  className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-xl transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <category.icon className={`w-5 h-5 ${category.color}`} />
-                  {category.name}
-                </a>
-              ))}
+              <p className="px-4 py-2 text-xs font-medium text-slate-500 uppercase">Categories</p>
+              {categories.map((category) => {
+                const Icon = getCategoryIcon(category.name);
+                const color = getCategoryColor(category.name);
+                return (
+                  <Link
+                    key={category.id}
+                    to={`/products?category=${category.id}`}
+                    className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-xl transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Icon className={`w-5 h-5 ${color}`} />
+                    {category.name}
+                  </Link>
+                );
+              })}
+            </div>
+            
+            {/* Mobile Quick Links */}
+            <div className="p-4 border-t border-slate-800 space-y-2">
+              <Link
+                to="/favourite-vendors"
+                className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-xl transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Heart className="w-5 h-5 text-red-400" />
+                Favourite Vendors
+              </Link>
+              <Link
+                to="/wishlist"
+                className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 rounded-xl transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Heart className="w-5 h-5" />
+                Wishlist
+              </Link>
             </div>
           </div>
         </div>

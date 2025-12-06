@@ -1,7 +1,7 @@
 -- MarketFlex V1 Initial Schema
--- Creates all base tables for the application
+-- Creates all base tables for the application matching Java entity models
 
--- Users table
+-- Users table (AppUser.java)
 CREATE TABLE app_users (
     id BIGSERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -31,18 +31,17 @@ CREATE TABLE user_roles (
     PRIMARY KEY (user_id, role)
 );
 
--- Categories table
+-- Categories table (Category.java)
 CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    description TEXT,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description VARCHAR(500),
     image_url VARCHAR(255),
-    parent_id BIGINT REFERENCES categories(id),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+    active BOOLEAN NOT NULL DEFAULT true,
+    deleted_at TIMESTAMP
 );
 
--- Vendors table
+-- Vendors table (Vendor.java)
 CREATE TABLE vendors (
     id BIGSERIAL PRIMARY KEY,
     store_name VARCHAR(100) NOT NULL UNIQUE,
@@ -50,15 +49,15 @@ CREATE TABLE vendors (
     address VARCHAR(255),
     contact_email VARCHAR(100),
     contact_phone VARCHAR(20),
-    user_id BIGINT NOT NULL UNIQUE REFERENCES app_users(id),
+    user_id BIGINT NOT NULL REFERENCES app_users(id),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
 );
 
--- Products table
+-- Products table (Product.java)
 CREATE TABLE products (
     id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     description VARCHAR(1024),
     price NUMERIC(10, 2) NOT NULL,
     stock_quantity INTEGER NOT NULL,
@@ -70,44 +69,46 @@ CREATE TABLE products (
     updated_at TIMESTAMP
 );
 
--- Shopping carts table
-CREATE TABLE shopping_carts (
+-- Carts table (Cart.java)
+CREATE TABLE carts (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT UNIQUE REFERENCES app_users(id),
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP
+    created_at TIMESTAMP,
+    modified_at TIMESTAMP
 );
 
--- Cart items table
+-- Cart items table (CartItem.java)
 CREATE TABLE cart_items (
     id BIGSERIAL PRIMARY KEY,
-    cart_id BIGINT NOT NULL REFERENCES shopping_carts(id) ON DELETE CASCADE,
+    cart_id BIGINT NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
     product_id BIGINT NOT NULL REFERENCES products(id),
-    quantity INTEGER NOT NULL,
+    quantity INTEGER,
     created_at TIMESTAMP,
     modified_at TIMESTAMP,
     UNIQUE(cart_id, product_id)
 );
 
--- Orders table
+-- Orders table (Order.java)
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT NOT NULL REFERENCES app_users(id),
-    status VARCHAR(50) NOT NULL,
-    total_amount NUMERIC(10, 2) NOT NULL,
-    shipping_address VARCHAR(500),
-    order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) NOT NULL,
+    total_price NUMERIC(12, 2) NOT NULL,
+    shipping_address VARCHAR(500) NOT NULL,
+    payment_method VARCHAR(30) NOT NULL,
+    created_at TIMESTAMP,
     updated_at TIMESTAMP
 );
 
--- Order items table
+-- Order items table (OrderItem.java)
 CREATE TABLE order_items (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     product_id BIGINT NOT NULL REFERENCES products(id),
+    vendor_id BIGINT REFERENCES vendors(id),
     quantity INTEGER NOT NULL,
-    unit_price NUMERIC(10, 2) NOT NULL,
-    subtotal NUMERIC(10, 2) NOT NULL
+    price NUMERIC(10, 2) NOT NULL,
+    created_at TIMESTAMP
 );
 
 -- Indexes for better query performance
@@ -119,3 +120,4 @@ CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 CREATE INDEX idx_vendors_user_id ON vendors(user_id);
 CREATE INDEX idx_vendors_store_name ON vendors(store_name);
+CREATE INDEX idx_order_items_vendor_id ON order_items(vendor_id);

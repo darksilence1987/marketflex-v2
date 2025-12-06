@@ -8,4 +8,5 @@ public interface UserService {
     AppUser getCurrentUser();
     AppUser registerUser(RegisterRequest request);
     AppUser updateProfile(UpdateProfileRequest request);
+    void updateUserRoles(AppUser user);
 }

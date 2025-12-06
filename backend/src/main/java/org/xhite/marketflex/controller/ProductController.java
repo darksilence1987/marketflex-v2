@@ -28,7 +28,7 @@ public class ProductController {
     /**
      * GET /api/v1/products/my-products - Get products for authenticated vendor
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
     @GetMapping("/my-products")
     public ResponseEntity<List<ProductDto>> getMyProducts() {
         return ResponseEntity.ok(productService.getMyProducts());
@@ -66,7 +66,7 @@ public class ProductController {
     /**
      * POST /api/v1/products - Create new product (ADMIN/MANAGER only)
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductDto> createProduct(
             @Valid @RequestPart("product") ProductDto productDto,
@@ -95,7 +95,7 @@ public class ProductController {
     /**
      * PUT /api/v1/products/{id} - Update existing product (ADMIN/MANAGER only)
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductDto> updateProduct(
             @PathVariable Long id,
@@ -125,7 +125,7 @@ public class ProductController {
     /**
      * DELETE /api/v1/products/{id} - Delete product (ADMIN/MANAGER only)
      */
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);

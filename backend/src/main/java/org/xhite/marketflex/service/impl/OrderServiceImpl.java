@@ -95,9 +95,10 @@ public class OrderServiceImpl implements OrderService {
             Product product = productRepository.findById(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
 
-            // Create order item with snapshot price
+            // Create order item with snapshot price and vendor for tracking
             OrderItem orderItem = OrderItem.builder()
                     .product(product)
+                    .vendor(product.getVendor()) // Set vendor for vendor order tracking
                     .quantity(quantity)
                     .price(cartItem.product().price()) // Snapshot price at time of purchase
                     .build();

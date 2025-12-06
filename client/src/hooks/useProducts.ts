@@ -79,6 +79,22 @@ export function useMyProducts() {
   });
 }
 
+// Fetch products for a specific vendor by store name
+async function fetchVendorProducts(storeName: string): Promise<Product[]> {
+  const { data } = await api.get<Product[]>(`/vendors/${storeName}/products`);
+  return data;
+}
+
+// Hook to get products for a specific vendor
+export function useVendorProducts(storeName: string | undefined) {
+  return useQuery({
+    queryKey: ['vendor-products', storeName],
+    queryFn: () => fetchVendorProducts(storeName!),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!storeName,
+  });
+}
+
 // Client-side filtering (since backend may not support all filters)
 export function filterProducts(
   products: Product[],

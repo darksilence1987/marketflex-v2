@@ -72,8 +72,11 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + productDto.categoryId()));
 
         // Get vendor for the current user
-        var vendor = vendorRepository.findByUserId(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found. Please create a vendor profile first."));
+        var vendors = vendorRepository.findByUserId(currentUser.getId());
+        if (vendors.isEmpty()) {
+            throw new ResourceNotFoundException("Vendor profile not found. Please create a vendor profile first.");
+        }
+        var vendor = vendors.get(0);
 
         Product product = new Product();
         updateProductFromDto(product, productDto, category);
@@ -241,8 +244,11 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public List<ProductDto> getMyProducts() {
         AppUser currentUser = userService.getCurrentUser();
-        var vendor = vendorRepository.findByUserId(currentUser.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vendor profile not found for current user"));
+        var vendors = vendorRepository.findByUserId(currentUser.getId());
+        if (vendors.isEmpty()) {
+            throw new ResourceNotFoundException("Vendor profile not found for current user");
+        }
+        var vendor = vendors.get(0);
         return getProductsByVendor(vendor.getId());
     }
 
