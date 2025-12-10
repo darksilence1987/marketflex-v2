@@ -241,6 +241,12 @@ export default function ProductListingPage() {
               <label
                 key={`category-${category.id}`}
                 className="flex items-center gap-3 cursor-pointer group"
+                onClick={() =>
+                  updateFilter(
+                    'category',
+                    filters.categoryId === category.id ? null : String(category.id)
+                  )
+                }
               >
                 <div
                   className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
@@ -248,12 +254,6 @@ export default function ProductListingPage() {
                       ? 'bg-emerald-500 border-emerald-500'
                       : 'border-slate-600 group-hover:border-emerald-500'
                   }`}
-                  onClick={() =>
-                    updateFilter(
-                      'category',
-                      filters.categoryId === category.id ? null : String(category.id)
-                    )
-                  }
                 >
                   {filters.categoryId === category.id && (
                     <Check className="w-3 h-3 text-white" />
