@@ -21,9 +21,15 @@ export default function WishlistPage() {
     }
   }, [isAuthenticated, fetchWishlist]);
 
-  const handleAddToCart = async (productId: number) => {
+  const handleAddToCart = (item: typeof items[0]) => {
     try {
-      await addItem(productId, 1);
+      addItem({
+        id: String(item.productId),
+        name: item.productName,
+        price: item.price,
+        image: item.imageUrl || '',
+        vendor: item.vendorStoreName || 'Unknown',
+      });
     } catch (error) {
       console.error('Failed to add to cart:', error);
     }
@@ -150,7 +156,7 @@ export default function WishlistPage() {
                       ${item.price.toFixed(2)}
                     </span>
                     <button 
-                      onClick={() => handleAddToCart(item.productId)}
+                      onClick={() => handleAddToCart(item)}
                       disabled={!item.inStock}
                       className="p-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 rounded-lg text-white transition-colors"
                     >
