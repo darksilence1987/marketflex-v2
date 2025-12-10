@@ -1,0 +1,48 @@
+name: Deploy Backend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**' # Sadece backend değişirse çalışsın
+
+env:
+  PROJECT_ID: gen-lang-client-0970632558 # Senin Proje ID'n (Environment variable'dan gördüm)
+  REGION: us-central1 # Artifact Registry ve Cloud Run bölgen
+  REPO_NAME: marketflex-repo # Adım 1'de oluşturduğun depo adı
+  SERVICE_NAME: marketflex-backend # Cloud Run servis adın
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Google'a Giriş Yap
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      # 2. Docker Ayarlarını Yap (Google Deposuna erişim için)
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # 3. İmajı Oluştur (Build) ve Etiketle
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }} ./backend
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+
+      # 4. Cloud Run'a Dağıt (Deploy)
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          flags: '--port=8080' # Spring Boot varsayılan portu
