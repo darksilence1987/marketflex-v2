@@ -8,44 +8,44 @@
 
 -- Admin user (password: Admin123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
-VALUES ('admin@marketflex.com', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', 'Admin', 'User', '+1-555-0100', '123 Admin Street', 'San Francisco', 'CA', '94102', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+VALUES ('admin@marketflex.com', '$2b$10$NJZDxN9vCvfEoJXJ7t4e3.i4wt/y4AfaJE1LrOJ0XpmSwbmjrFAeG', 'Admin', 'User', '+1-555-0100', '123 Admin Street', 'San Francisco', 'CA', '94102', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'admin@marketflex.com'), 'ADMIN');
 
 -- Manager user (password: Manager123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
-VALUES ('manager@marketflex.com', '$2a$10$EqKcp1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Store', 'Manager', '+1-555-0101', '456 Market Ave', 'Los Angeles', 'CA', '90001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+VALUES ('manager@marketflex.com', '$2b$10$0r.fywjRJFUfIVIGhiO42um2kVZGjKdcoJen/Xs/kMPelOH/0hVO.', 'Store', 'Manager', '+1-555-0101', '456 Market Ave', 'Los Angeles', 'CA', '90001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'manager@marketflex.com'), 'MANAGER');
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'manager@marketflex.com'), 'VENDOR');
 
 -- Multi-store owner 1 (password: MultiStore123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
-VALUES ('multistore1@marketflex.com', '$2a$10$LkS1FqC1bxGPE4VX2hYQeeQbKxMSFNyM.XqVhKPxnKCqj0kGJkTL2', 'Alex', 'Thompson', '+1-555-0102', '789 Enterprise Blvd', 'New York', 'NY', '10001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+VALUES ('multistore1@marketflex.com', '$2b$10$DMCRseppThPFrrEy/xI8/uDF2mP7roHfqU5aTZsz4XFhZuQUEwcQG', 'Alex', 'Thompson', '+1-555-0102', '789 Enterprise Blvd', 'New York', 'NY', '10001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'multistore1@marketflex.com'), 'VENDOR');
 
 -- Multi-store owner 2 (password: MultiStore123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
-VALUES ('multistore2@marketflex.com', '$2a$10$LkS1FqC1bxGPE4VX2hYQeeQbKxMSFNyM.XqVhKPxnKCqj0kGJkTL2', 'Sarah', 'Williams', '+1-555-0103', '321 Commerce Dr', 'Chicago', 'IL', '60601', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+VALUES ('multistore2@marketflex.com', '$2b$10$DMCRseppThPFrrEy/xI8/uDF2mP7roHfqU5aTZsz4XFhZuQUEwcQG', 'Sarah', 'Williams', '+1-555-0103', '321 Commerce Dr', 'Chicago', 'IL', '60601', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'multistore2@marketflex.com'), 'VENDOR');
 
 -- Multi-store owner 3 (password: MultiStore123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
-VALUES ('multistore3@marketflex.com', '$2a$10$LkS1FqC1bxGPE4VX2hYQeeQbKxMSFNyM.XqVhKPxnKCqj0kGJkTL2', 'Michael', 'Chen', '+1-555-0104', '555 Business Park', 'Seattle', 'WA', '98101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+VALUES ('multistore3@marketflex.com', '$2b$10$DMCRseppThPFrrEy/xI8/uDF2mP7roHfqU5aTZsz4XFhZuQUEwcQG', 'Michael', 'Chen', '+1-555-0104', '555 Business Park', 'Seattle', 'WA', '98101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) VALUES ((SELECT id FROM app_users WHERE email = 'multistore3@marketflex.com'), 'VENDOR');
 
 -- Single-store vendors (password: Vendor123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
 VALUES 
-('techguru@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Tech', 'Guru', '+1-555-0105', '100 Tech Lane', 'Austin', 'TX', '73301', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('fashionista@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Fashion', 'Expert', '+1-555-0106', '200 Style Ave', 'Miami', 'FL', '33101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('homehero@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Home', 'Hero', '+1-555-0107', '300 Living St', 'Denver', 'CO', '80201', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('sportstar@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Sport', 'Star', '+1-555-0108', '400 Fitness Rd', 'Phoenix', 'AZ', '85001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('beautyqueen@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Beauty', 'Queen', '+1-555-0109', '500 Glow Blvd', 'Las Vegas', 'NV', '89101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('bookworm@vendor.com', '$2a$10$TkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Book', 'Worm', '+1-555-0110', '600 Library Ln', 'Boston', 'MA', '02101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+('techguru@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Tech', 'Guru', '+1-555-0105', '100 Tech Lane', 'Austin', 'TX', '73301', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('fashionista@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Fashion', 'Expert', '+1-555-0106', '200 Style Ave', 'Miami', 'FL', '33101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('homehero@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Home', 'Hero', '+1-555-0107', '300 Living St', 'Denver', 'CO', '80201', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('sportstar@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Sport', 'Star', '+1-555-0108', '400 Fitness Rd', 'Phoenix', 'AZ', '85001', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('beautyqueen@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Beauty', 'Queen', '+1-555-0109', '500 Glow Blvd', 'Las Vegas', 'NV', '89101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('bookworm@vendor.com', '$2b$10$KfoftbWRx9T6rReZlYRu0e436cIjW4bMMBDX7lxKtAqvdHAgjZi.i', 'Book', 'Worm', '+1-555-0110', '600 Library Ln', 'Boston', 'MA', '02101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) 
 SELECT id, 'VENDOR' FROM app_users WHERE email IN ('techguru@vendor.com', 'fashionista@vendor.com', 'homehero@vendor.com', 'sportstar@vendor.com', 'beautyqueen@vendor.com', 'bookworm@vendor.com');
@@ -53,9 +53,9 @@ SELECT id, 'VENDOR' FROM app_users WHERE email IN ('techguru@vendor.com', 'fashi
 -- Test customers (password: Customer123!)
 INSERT INTO app_users (email, password, first_name, last_name, phone_number, street, city, state, zip_code, country, enabled, account_non_locked, failed_attempt, version, created_at)
 VALUES 
-('customer1@test.com', '$2a$10$CkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'John', 'Doe', '+1-555-0201', '101 Main St', 'Portland', 'OR', '97201', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('customer2@test.com', '$2a$10$CkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Jane', 'Smith', '+1-555-0202', '202 Oak Ave', 'San Diego', 'CA', '92101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
-('customer3@test.com', '$2a$10$CkR1WFKVQISheBxkQJxuHOEpNOiIJlhNqLlMn7ZFz5OxPR2PWJW', 'Bob', 'Johnson', '+1-555-0203', '303 Pine Rd', 'Atlanta', 'GA', '30301', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
+('customer1@test.com', '$2b$10$Vfy5hfBpsVdWsvmgcKKJbu/HEU8ZzJfZ3rr4el.XKa7kNE2fl.xaW', 'John', 'Doe', '+1-555-0201', '101 Main St', 'Portland', 'OR', '97201', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('customer2@test.com', '$2b$10$Vfy5hfBpsVdWsvmgcKKJbu/HEU8ZzJfZ3rr4el.XKa7kNE2fl.xaW', 'Jane', 'Smith', '+1-555-0202', '202 Oak Ave', 'San Diego', 'CA', '92101', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP),
+('customer3@test.com', '$2b$10$Vfy5hfBpsVdWsvmgcKKJbu/HEU8ZzJfZ3rr4el.XKa7kNE2fl.xaW', 'Bob', 'Johnson', '+1-555-0203', '303 Pine Rd', 'Atlanta', 'GA', '30301', 'USA', true, true, 0, 0, CURRENT_TIMESTAMP);
 
 INSERT INTO user_roles (user_id, role) 
 SELECT id, 'CUSTOMER' FROM app_users WHERE email IN ('customer1@test.com', 'customer2@test.com', 'customer3@test.com');
