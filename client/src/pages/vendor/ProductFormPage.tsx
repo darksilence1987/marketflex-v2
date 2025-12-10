@@ -113,7 +113,7 @@ function ProductFormContent() {
     onError: (err: any) => {
       // Check for 403 Forbidden (unauthorized access)
       if (err.response?.status === 403) {
-        setError('You don\\'t have permission to edit this product. You can only edit your own products.');
+        setError("You don't have permission to edit this product. You can only edit your own products.");
       } else {
         setError(err.response?.data?.message || err.response?.data?.detail || 'Failed to save product');
       }
