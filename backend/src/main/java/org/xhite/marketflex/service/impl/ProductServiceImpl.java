@@ -252,4 +252,82 @@ public class ProductServiceImpl implements ProductService {
         return getProductsByVendor(vendor.getId());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public org.xhite.marketflex.dto.PagedResponse<ProductDto> filterProducts(org.xhite.marketflex.dto.ProductFilterRequest request) {
+        org.springframework.data.jpa.domain.Specification<Product> spec = buildSpecification(request);
+        
+        // Build sort
+        org.springframework.data.domain.Sort sort = buildSort(request.sortBy());
+        
+        // Build pageable
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            request.page(), 
+            request.size(), 
+            sort
+        );
+        
+        // Execute query
+        org.springframework.data.domain.Page<Product> page = productRepository.findAll(spec, pageable);
+        
+        // Convert to DTOs
+        List<ProductDto> content = page.getContent().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        
+        return org.xhite.marketflex.dto.PagedResponse.of(content, request.page(), request.size(), page.getTotalElements());
+    }
+    
+    private org.springframework.data.jpa.domain.Specification<Product> buildSpecification(org.xhite.marketflex.dto.ProductFilterRequest request) {
+        return (root, query, cb) -> {
+            List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            
+            // Always filter active products
+            predicates.add(cb.isTrue(root.get("active")));
+            
+            // Category filter
+            if (request.categoryId() != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), request.categoryId()));
+            }
+            
+            // Price range filter
+            if (request.minPrice() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), request.minPrice()));
+            }
+            if (request.maxPrice() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), request.maxPrice()));
+            }
+            
+            // Search filter (name or description)
+            if (request.search() != null && !request.search().isBlank()) {
+                String searchLower = "%" + request.search().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("name")), searchLower),
+                    cb.like(cb.lower(root.get("description")), searchLower)
+                ));
+            }
+            
+            // In stock filter
+            if (request.inStock() != null && request.inStock()) {
+                predicates.add(cb.greaterThan(root.get("stockQuantity"), 0));
+            }
+            
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+    }
+    
+    private org.springframework.data.domain.Sort buildSort(String sortBy) {
+        if (sortBy == null) {
+            return org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        }
+        
+        return switch (sortBy) {
+            case "price-asc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "price");
+            case "price-desc" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "price");
+            case "name" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "name");
+            case "newest" -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+            default -> org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt");
+        };
+    }
+
 }

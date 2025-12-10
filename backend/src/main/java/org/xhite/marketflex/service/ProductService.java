@@ -3,7 +3,9 @@ package org.xhite.marketflex.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.xhite.marketflex.dto.PagedResponse;
 import org.xhite.marketflex.dto.ProductDto;
+import org.xhite.marketflex.dto.ProductFilterRequest;
 import org.xhite.marketflex.model.Product;
 
 public interface ProductService {
@@ -22,4 +24,7 @@ public interface ProductService {
     void updateStock(Long productId, Integer quantity);
     List<ProductDto> getProductsByVendor(Long vendorId);
     List<ProductDto> getMyProducts();
+    
+    // Filtering with pagination
+    PagedResponse<ProductDto> filterProducts(ProductFilterRequest request);
 }

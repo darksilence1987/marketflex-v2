@@ -5,6 +5,7 @@ package org.xhite.marketflex.model.enums;
  */
 public enum OrderStatus {
     PENDING,
+    PROCESSING,
     PAID,
     SHIPPED,
     DELIVERED,

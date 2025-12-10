@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { ShoppingCart, Heart, Star, Check, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useCartStore } from '../../store/cartStore';
+import { useWishlistStore } from '../../store/wishlistStore';
+import { useAuthStore } from '../../store/authStore';
 import { useUIStore } from '../../store/uiStore';
 import { getImageUrl } from '../../lib/utils';
 import type { Product } from '../../hooks/useProducts';
@@ -14,9 +16,12 @@ interface ProductCardProps {
 export function ProductCard({ product, variant = 'default' }: ProductCardProps) {
   const addToCart = useCartStore((state) => state.addItem);
   const openCartDrawer = useUIStore((state) => state.openCartDrawer);
+  const { isAuthenticated } = useAuthStore();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
 
   const isInStock = product.stockQuantity > 0;
   const isLowStock = product.stockQuantity > 0 && product.stockQuantity <= 10;
+  const isWishlisted = isInWishlist(product.id);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -105,8 +110,20 @@ export function ProductCard({ product, variant = 'default' }: ProductCardProps) 
 
         {/* Quick Actions */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button className="w-9 h-9 rounded-xl bg-slate-900/90 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-slate-800 transition-colors">
-            <Heart className="w-4 h-4" />
+          <button 
+            onClick={async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isAuthenticated) return;
+              if (isWishlisted) {
+                await removeFromWishlist(product.id);
+              } else {
+                await addToWishlist(product.id);
+              }
+            }}
+            className={`w-9 h-9 rounded-xl bg-slate-900/90 backdrop-blur-sm flex items-center justify-center transition-colors ${isWishlisted ? 'text-red-500' : 'text-slate-300 hover:text-red-400'} hover:bg-slate-800`}
+          >
+            <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-current' : ''}`} />
           </button>
         </div>
 

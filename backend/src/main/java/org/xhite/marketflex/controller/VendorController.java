@@ -9,12 +9,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.xhite.marketflex.dto.CreateVendorRequest;
 import org.xhite.marketflex.dto.ProductDto;
 import org.xhite.marketflex.dto.UpdateVendorRequest;
+import org.xhite.marketflex.dto.UpdateOrderStatusRequest;
 import org.xhite.marketflex.dto.VendorDto;
 import org.xhite.marketflex.dto.VendorOrderDto;
 import org.xhite.marketflex.service.VendorService;
@@ -144,5 +146,30 @@ public class VendorController {
         log.info("Updating vendor profile (legacy endpoint)");
         VendorDto updatedVendor = vendorService.updateCurrentVendor(request);
         return ResponseEntity.ok(updatedVendor);
+    }
+
+    /**
+     * PUT /api/v1/vendors/store/{vendorId}/orders/{orderId}/status - Update order status
+     */
+    @PreAuthorize("hasAnyRole('VENDOR', 'MANAGER', 'ADMIN')")
+    @PutMapping("/store/{vendorId}/orders/{orderId}/status")
+    public ResponseEntity<Void> updateOrderStatus(
+            @PathVariable Long vendorId,
+            @PathVariable Long orderId,
+            @Valid @RequestBody UpdateOrderStatusRequest request) {
+        log.info("Updating order {} status to {} for vendor {}", orderId, request.status(), vendorId);
+        vendorService.updateOrderStatus(vendorId, orderId, request.status());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * DELETE /api/v1/vendors/store/{id} - Delete vendor store (with ownership check)
+     */
+    @PreAuthorize("hasAnyRole('VENDOR', 'MANAGER', 'ADMIN')")
+    @DeleteMapping("/store/{id}")
+    public ResponseEntity<Void> deleteVendor(@PathVariable Long id) {
+        log.info("Deleting vendor store with ID: {}", id);
+        vendorService.deleteVendor(id);
+        return ResponseEntity.noContent().build();
     }
 }

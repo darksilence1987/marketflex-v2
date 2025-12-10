@@ -54,6 +54,26 @@ public class ProductController {
     }
 
     /**
+     * GET /api/v1/products/filter - Filter products with advanced parameters
+     */
+    @GetMapping("/filter")
+    public ResponseEntity<org.xhite.marketflex.dto.PagedResponse<ProductDto>> filterProducts(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean inStock,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "20") Integer size) {
+        
+        var request = new org.xhite.marketflex.dto.ProductFilterRequest(
+            categoryId, minPrice, maxPrice, search, inStock, sortBy, page, size
+        );
+        return ResponseEntity.ok(productService.filterProducts(request));
+    }
+
+    /**
      * GET /api/v1/products/{id} - Get product by ID
      */
     @GetMapping("/{id}")

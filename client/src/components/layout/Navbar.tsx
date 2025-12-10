@@ -25,6 +25,7 @@ import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
+import { useWishlistStore } from '../../store/wishlistStore';
 import api from '../../lib/axios';
 
 // Category icon mapping
@@ -88,6 +89,8 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const { items: wishlistItems } = useWishlistStore();
+  const wishlistCount = wishlistItems.length;
 
   // Fetch categories dynamically
   const { data: categories = [] } = useQuery({
@@ -177,13 +180,18 @@ export function Navbar() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              {/* Favourite Vendors (Desktop) - Heart Icon */}
+              {/* Wishlist (Desktop) - Heart Icon with badge */}
               <Link
-                to="/favourite-vendors"
-                className="hidden lg:flex p-2.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all"
-                title="Favourite Vendors"
+                to="/wishlist"
+                className="hidden lg:flex relative p-2.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all"
+                title="Wishlist"
               >
                 <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
+                    {wishlistCount > 99 ? '99+' : wishlistCount}
+                  </span>
+                )}
               </Link>
 
               {/* Cart */}

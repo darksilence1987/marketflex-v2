@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -53,5 +54,16 @@ public class OrderController {
     public ResponseEntity<OrderDto> getOrderById(@PathVariable Long id) {
         OrderDto order = orderService.getOrderById(id);
         return ResponseEntity.ok(order);
+    }
+
+    /**
+     * PUT /api/v1/orders/{id}/cancel - Cancel a pending order
+     * Users can only cancel their own orders
+     */
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<OrderDto> cancelOrder(@PathVariable Long id) {
+        log.info("Cancel order request for order ID: {}", id);
+        OrderDto cancelledOrder = orderService.cancelOrder(id);
+        return ResponseEntity.ok(cancelledOrder);
     }
 }

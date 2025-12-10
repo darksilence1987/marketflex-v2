@@ -21,8 +21,10 @@ import org.xhite.marketflex.model.OrderItem;
 import org.xhite.marketflex.model.Vendor;
 import org.xhite.marketflex.model.enums.Role;
 import org.xhite.marketflex.repository.OrderItemRepository;
+import org.xhite.marketflex.repository.OrderRepository;
 import org.xhite.marketflex.repository.ProductRepository;
 import org.xhite.marketflex.repository.VendorRepository;
+import org.xhite.marketflex.model.enums.OrderStatus;
 import org.xhite.marketflex.service.ProductService;
 import org.xhite.marketflex.service.UserService;
 import org.xhite.marketflex.service.VendorService;
@@ -38,6 +40,7 @@ public class VendorServiceImpl implements VendorService {
     private final VendorRepository vendorRepository;
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
+    private final OrderRepository orderRepository;
     private final UserService userService;
     private final ProductService productService;
 
@@ -252,5 +255,59 @@ public class VendorServiceImpl implements VendorService {
                 .userEmail(vendor.getUser().getEmail())
                 .userFullName(vendor.getUser().getFirstName() + " " + vendor.getUser().getLastName())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void updateOrderStatus(Long vendorId, Long orderId, OrderStatus status) {
+        AppUser currentUser = userService.getCurrentUser();
+        
+        // Verify vendor ownership
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor not found: " + vendorId));
+        
+        if (!vendor.getUser().getId().equals(currentUser.getId()) && !currentUser.isAdmin()) {
+            throw new BusinessException("You don't have permission to update orders for this vendor");
+        }
+        
+        // Find the order
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+        
+        // Verify the order contains items from this vendor
+        boolean hasVendorItems = order.getOrderItems().stream()
+                .anyMatch(item -> item.getVendor() != null && item.getVendor().getId().equals(vendorId));
+        
+        if (!hasVendorItems) {
+            throw new BusinessException("This order does not contain items from your store");
+        }
+        
+        // Update order status
+        order.setStatus(status);
+        orderRepository.save(order);
+        
+        log.info("Updated order {} status to {} by vendor {}", orderId, status, vendorId);
+    }
+
+    @Override
+    @Transactional
+    public void deleteVendor(Long vendorId) {
+        AppUser currentUser = userService.getCurrentUser();
+        Vendor vendor = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vendor not found with id: " + vendorId));
+        
+        // Check ownership (admin can delete any vendor)
+        if (!vendor.getUser().getId().equals(currentUser.getId()) && !currentUser.isAdmin()) {
+            throw new BusinessException("You don't have permission to delete this vendor");
+        }
+        
+        // Check if vendor has any products
+        long productCount = productRepository.findByVendorIdAndActiveTrue(vendorId).size();
+        if (productCount > 0) {
+            throw new BusinessException("Cannot delete vendor with active products. Please delete or deactivate all products first.");
+        }
+        
+        vendorRepository.delete(vendor);
+        log.info("Deleted vendor '{}' by user: {}", vendor.getStoreName(), currentUser.getEmail());
     }
 }

@@ -31,4 +31,13 @@ public interface OrderService {
      * @return the order details
      */
     OrderDto getOrderById(Long id);
+    
+    /**
+     * Cancels an order if it is still in PENDING status.
+     * Users can only cancel their own orders.
+     *
+     * @param id the order ID to cancel
+     * @return the cancelled order details
+     */
+    OrderDto cancelOrder(Long id);
 }

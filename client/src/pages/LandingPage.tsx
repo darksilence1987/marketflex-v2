@@ -28,6 +28,8 @@ import { Footer } from '../components/layout/Footer';
 import { AuthDrawer } from '../components/features/AuthDrawer';
 import { CartDrawer } from '../components/features/CartDrawer';
 import { useCartStore } from '../store/cartStore';
+import { useWishlistStore } from '../store/wishlistStore';
+import { useAuthStore } from '../store/authStore';
 import { useUIStore } from '../store/uiStore';
 import { getImageUrl } from '../lib/utils';
 import api from '../lib/axios';
@@ -128,6 +130,8 @@ export default function LandingPage() {
   const [categorySlide, setCategorySlide] = useState(0);
   const addToCart = useCartStore((state) => state.addItem);
   const openCartDrawer = useUIStore((state) => state.openCartDrawer);
+  const { isAuthenticated } = useAuthStore();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
 
   // Fetch products from backend
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
@@ -144,7 +148,7 @@ export default function LandingPage() {
   });
 
   // Fetch vendors from backend
-  const { data: vendors = [] } = useQuery({
+  const { data: vendors = [], isLoading: isLoadingVendors } = useQuery({
     queryKey: ['featured-vendors'],
     queryFn: fetchVendors,
     staleTime: 1000 * 60 * 30,
@@ -168,6 +172,18 @@ export default function LandingPage() {
       vendor: product.vendorStoreName || 'MarketFlex',
     });
     openCartDrawer();
+  };
+
+  const handleWishlistToggle = async (e: React.MouseEvent, productId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) return;
+    
+    if (isInWishlist(productId)) {
+      await removeFromWishlist(productId);
+    } else {
+      await addToWishlist(productId);
+    }
   };
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
@@ -444,7 +460,19 @@ export default function LandingPage() {
 
           <div className="relative">
             <div className="flex gap-6 overflow-x-auto pb-4 -mx-6 px-6 snap-x snap-mandatory vendor-scroll">
-              {vendors.length > 0 ? vendors.map((vendor) => (
+              {isLoadingVendors ? (
+                // Loading skeleton
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-shrink-0 w-64 p-6 bg-slate-900 rounded-2xl border border-slate-800 snap-start"
+                  >
+                    <div className="w-16 h-16 rounded-xl bg-slate-800 animate-pulse mb-4" />
+                    <div className="h-5 bg-slate-800 rounded animate-pulse mb-2 w-3/4" />
+                    <div className="h-4 bg-slate-800 rounded animate-pulse w-1/2" />
+                  </div>
+                ))
+              ) : vendors.length > 0 ? vendors.map((vendor) => (
                 <Link
                   key={vendor.id}
                   to={`/store/${vendor.storeName}`}
@@ -552,8 +580,11 @@ export default function LandingPage() {
 
                     {/* Quick Actions */}
                     <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="w-9 h-9 rounded-xl bg-slate-900/90 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-red-400 hover:bg-slate-800 transition-colors">
-                        <Heart className="w-4 h-4" />
+                      <button 
+                        onClick={(e) => handleWishlistToggle(e, product.id)}
+                        className={`w-9 h-9 rounded-xl bg-slate-900/90 backdrop-blur-sm flex items-center justify-center transition-colors ${isInWishlist(product.id) ? 'text-red-500' : 'text-slate-300 hover:text-red-400'} hover:bg-slate-800`}
+                      >
+                        <Heart className={`w-4 h-4 ${isInWishlist(product.id) ? 'fill-current' : ''}`} />
                       </button>
                     </div>
 

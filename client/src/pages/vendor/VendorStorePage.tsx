@@ -8,10 +8,13 @@ import {
   Package,
   ChevronRight,
   AlertCircle,
+  Heart,
 } from 'lucide-react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
 import { ProductCard, ProductCardSkeleton } from '../../components/features/ProductCard';
+import { useFavouriteVendorsStore } from '../../store/favouriteVendorsStore';
+import { useAuthStore } from '../../store/authStore';
 import api from '../../lib/axios';
 import type { Product } from '../../hooks/useProducts';
 
@@ -28,6 +31,8 @@ interface Vendor {
 
 export default function VendorStorePage() {
   const { storeName } = useParams<{ storeName: string }>();
+  const { isAuthenticated } = useAuthStore();
+  const { addFavourite, removeFavourite, isFavourite } = useFavouriteVendorsStore();
 
   // Fetch vendor details
   const { data: vendor, isLoading: isLoadingVendor, error: vendorError } = useQuery({
@@ -142,12 +147,33 @@ export default function VendorStorePage() {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="flex gap-6">
+              {/* Stats and Favourite Button */}
+              <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-white">{products?.length || 0}</div>
                   <div className="text-sm text-slate-400">Products</div>
                 </div>
+                
+                {/* Favourite Button */}
+                {isAuthenticated && vendor && (
+                  <button
+                    onClick={async () => {
+                      if (isFavourite(vendor.id)) {
+                        await removeFavourite(vendor.id);
+                      } else {
+                        await addFavourite(vendor.id);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
+                      isFavourite(vendor.id)
+                        ? 'bg-red-500/20 border-red-500/50 text-red-400'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-red-500/50 hover:text-red-400'
+                    }`}
+                  >
+                    <Heart className={`w-5 h-5 ${isFavourite(vendor.id) ? 'fill-current' : ''}`} />
+                    {isFavourite(vendor.id) ? 'Favourited' : 'Add to Favourites'}
+                  </button>
+                )}
               </div>
             </div>
           </div>

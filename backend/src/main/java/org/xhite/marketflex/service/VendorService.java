@@ -39,4 +39,10 @@ public interface VendorService {
     // Internal methods
     Optional<Vendor> getVendorEntityByUserId(Long userId);
     VendorDto convertToDto(Vendor vendor);
+    
+    // Order management
+    void updateOrderStatus(Long vendorId, Long orderId, org.xhite.marketflex.model.enums.OrderStatus status);
+    
+    // Delete vendor
+    void deleteVendor(Long vendorId);
 }

@@ -151,4 +151,37 @@ public class OrderServiceImpl implements OrderService {
 
         return orderMapper.toDto(order);
     }
+
+    @Override
+    @Transactional
+    public OrderDto cancelOrder(Long id) {
+        AppUser user = userService.getCurrentUser();
+        
+        // Find the order with ownership check
+        Order order;
+        if (user.isAdmin()) {
+            order = orderRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
+        } else {
+            order = orderRepository.findByIdAndUser(id, user)
+                    .orElseThrow(() -> new AccessDeniedException("Order not found or access denied"));
+        }
+        
+        // Only allow cancellation of PENDING orders
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new BusinessException("Cannot cancel order: Order status is " + order.getStatus() + ". Only PENDING orders can be cancelled.");
+        }
+        
+        // Restore stock for all items
+        for (OrderItem item : order.getOrderItems()) {
+            productService.updateStock(item.getProduct().getId(), item.getQuantity()); // Negative to restore
+        }
+        
+        // Update order status to CANCELLED
+        order.setStatus(OrderStatus.CANCELLED);
+        Order savedOrder = orderRepository.save(order);
+        
+        log.info("Order {} cancelled by user {}", id, user.getEmail());
+        return orderMapper.toDto(savedOrder);
+    }
 }

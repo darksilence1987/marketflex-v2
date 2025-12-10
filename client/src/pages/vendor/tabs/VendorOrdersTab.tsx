@@ -74,7 +74,7 @@ export default function VendorOrdersTab({ vendorId }: VendorOrdersTabProps) {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: number; status: string }) => {
-      const response = await api.put(`/vendors/${vendorId}/orders/${orderId}/status`, { status });
+      const response = await api.put(`/vendors/store/${vendorId}/orders/${orderId}/status`, { status });
       return response.data;
     },
     onSuccess: () => {
