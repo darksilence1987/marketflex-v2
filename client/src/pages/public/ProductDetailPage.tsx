@@ -29,6 +29,7 @@ import { useProduct, mockProducts, type Product } from '../../hooks/useProducts'
 import { useCartStore } from '../../store/cartStore';
 import { useUIStore } from '../../store/uiStore';
 import { useAuthStore } from '../../store/authStore';
+import { useWishlistStore } from '../../store/wishlistStore';
 import { getImageUrl } from '../../lib/utils';
 import api from '../../lib/axios';
 
@@ -100,6 +101,7 @@ export default function ProductDetailPage() {
   const openCartDrawer = useUIStore((state) => state.openCartDrawer);
   const openAuthDrawer = useUIStore((state) => state.openAuthDrawer);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -269,8 +271,27 @@ export default function ProductDetailPage() {
 
               {/* Quick Actions */}
               <div className="absolute top-4 right-4 flex gap-2">
-                <button className="w-10 h-10 rounded-full bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-red-400 transition-colors">
-                  <Heart className="w-5 h-5" />
+                <button 
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      openAuthDrawer('login');
+                      return;
+                    }
+                    if (productData) {
+                      if (isInWishlist(productData.id)) {
+                        await removeFromWishlist(productData.id);
+                      } else {
+                        await addToWishlist(productData.id);
+                      }
+                    }
+                  }}
+                  className={`w-10 h-10 rounded-full bg-slate-900/80 backdrop-blur-sm flex items-center justify-center transition-colors ${
+                    productData && isInWishlist(productData.id) 
+                      ? 'text-red-500' 
+                      : 'text-slate-300 hover:text-red-400'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${productData && isInWishlist(productData.id) ? 'fill-current' : ''}`} />
                 </button>
                 <button className="w-10 h-10 rounded-full bg-slate-900/80 backdrop-blur-sm flex items-center justify-center text-slate-300 hover:text-white transition-colors">
                   <Share2 className="w-5 h-5" />

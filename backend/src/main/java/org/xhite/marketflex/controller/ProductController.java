@@ -143,12 +143,117 @@ public class ProductController {
     }
 
     /**
+     * POST /api/v1/products/json - Create new product with JSON body (no file upload)
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ProductDto> createProductJson(@Valid @RequestBody ProductDto productDto) {
+        log.info("Creating product via JSON: {}", productDto.name());
+        ProductDto created = productService.createProduct(productDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    /**
+     * PUT /api/v1/products/{id}/json - Update product with JSON body (no file upload)
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ProductDto> updateProductJson(
+            @PathVariable Long id,
+            @Valid @RequestBody ProductDto productDto) {
+        log.info("Updating product {} via JSON", id);
+        ProductDto updated = productService.updateProduct(id, productDto);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
      * DELETE /api/v1/products/{id} - Delete product (ADMIN/MANAGER only)
      */
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        // Get product to delete its image
+        productService.getProductById(id).ifPresent(product -> {
+            if (product.imageUrl() != null) {
+                storageService.delete(product.imageUrl());
+            }
+        });
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * DELETE /api/v1/products/{id}/image - Delete product image only
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<ProductDto> deleteProductImage(@PathVariable Long id) {
+        log.info("Deleting image for product {}", id);
+        
+        ProductDto product = productService.getProductById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        
+        // Delete from storage
+        if (product.imageUrl() != null) {
+            storageService.delete(product.imageUrl());
+        }
+        
+        // Update product to remove image URL
+        ProductDto updatedDto = ProductDto.builder()
+                .id(product.id())
+                .name(product.name())
+                .description(product.description())
+                .price(product.price())
+                .stockQuantity(product.stockQuantity())
+                .categoryId(product.categoryId())
+                .categoryName(product.categoryName())
+                .imageUrl(null)
+                .active(product.active())
+                .vendorId(product.vendorId())
+                .vendorStoreName(product.vendorStoreName())
+                .build();
+        
+        ProductDto updated = productService.updateProduct(id, updatedDto);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * POST /api/v1/products/{id}/image - Upload/replace product image
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'VENDOR')")
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductDto> uploadProductImage(
+            @PathVariable Long id,
+            @RequestPart("imageFile") MultipartFile imageFile) {
+        log.info("Uploading image for product {}", id);
+        
+        ProductDto product = productService.getProductById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        
+        // Delete old image if exists
+        if (product.imageUrl() != null) {
+            storageService.delete(product.imageUrl());
+        }
+        
+        // Upload new image
+        String imageUrl = storageService.store(imageFile);
+        
+        // Update product with new image URL
+        ProductDto updatedDto = ProductDto.builder()
+                .id(product.id())
+                .name(product.name())
+                .description(product.description())
+                .price(product.price())
+                .stockQuantity(product.stockQuantity())
+                .categoryId(product.categoryId())
+                .categoryName(product.categoryName())
+                .imageUrl(imageUrl)
+                .active(product.active())
+                .vendorId(product.vendorId())
+                .vendorStoreName(product.vendorStoreName())
+                .build();
+        
+        ProductDto updated = productService.updateProduct(id, updatedDto);
+        return ResponseEntity.ok(updated);
     }
 }

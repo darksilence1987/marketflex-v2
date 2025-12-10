@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Package,
   Plus,
@@ -12,6 +13,7 @@ import {
   Settings,
   ShoppingCart,
   ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Button } from '../../components/ui/Button';
@@ -20,6 +22,7 @@ import { useAuthStore } from '../../store/authStore';
 import { VendorProvider, useVendorContext } from '../../context/VendorContext';
 import StoreSettingsTab from './tabs/StoreSettingsTab';
 import VendorOrdersTab from './tabs/VendorOrdersTab';
+import api from '../../lib/axios';
 
 function VendorDashboardContent() {
   const navigate = useNavigate();
@@ -31,6 +34,30 @@ function VendorDashboardContent() {
   
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings'>('products');
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      await api.delete(`/products/${productId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendor-products'] });
+      setDeletingProductId(null);
+    },
+    onError: () => {
+      alert('Failed to delete product. Please try again.');
+      setDeletingProductId(null);
+    },
+  });
+
+  const handleDeleteProduct = (productId: number) => {
+    if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      setDeletingProductId(productId);
+      deleteMutation.mutate(productId);
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -132,7 +159,7 @@ function VendorDashboardContent() {
           
           {activeTab === 'products' && (
             <Button
-              onClick={() => {/* TODO: Navigate to add product page */}}
+              onClick={() => navigate('/vendor/product/new')}
               className="gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -287,18 +314,23 @@ function VendorDashboardContent() {
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => {/* TODO: Navigate to edit product */}}
+                                  onClick={() => navigate(`/vendor/product/${product.id}/edit`)}
                                   className="p-2 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
                                   title="Edit Product"
                                 >
                                   <Edit className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => {/* TODO: Handle delete */}}
-                                  className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                  onClick={() => handleDeleteProduct(product.id)}
+                                  disabled={deletingProductId === product.id}
+                                  className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors disabled:opacity-50"
                                   title="Delete Product"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  {deletingProductId === product.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
                                 </button>
                               </div>
                             </td>
@@ -315,7 +347,7 @@ function VendorDashboardContent() {
                   <p className="text-slate-400 mb-6">
                     Start by adding your first product to the marketplace.
                   </p>
-                  <Button onClick={() => {/* TODO: Navigate to add product */}} className="gap-2">
+                  <Button onClick={() => navigate('/vendor/product/new')} className="gap-2">
                     <Plus className="w-4 h-4" />
                     Add Your First Product
                   </Button>

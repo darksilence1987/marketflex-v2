@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Search,
@@ -20,6 +20,7 @@ import {
   Store,
   Gamepad2,
   Car,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
@@ -80,17 +81,83 @@ async function fetchMyVendors(): Promise<UserVendor[]> {
   }
 }
 
+interface SearchProduct {
+  id: number;
+  name: string;
+  price: number;
+  stockQuantity: number;
+  imageUrl?: string;
+  vendorStoreName?: string;
+}
+
+async function searchProducts(query: string): Promise<SearchProduct[]> {
+  if (!query || query.length < 2) return [];
+  try {
+    const { data } = await api.get<{ content: SearchProduct[] }>(
+      `/products/filter?search=${encodeURIComponent(query)}&size=8`
+    );
+    return data.content || [];
+  } catch {
+    return [];
+  }
+}
+
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  
+  return debouncedValue;
+}
+
 export function Navbar() {
+  const navigate = useNavigate();
   const { openAuthDrawer, openCartDrawer, isMegaMenuOpen, toggleMegaMenu, closeMegaMenu } =
     useUIStore();
   const cartItems = useCartStore((state) => state.items);
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const { items: wishlistItems } = useWishlistStore();
-  const wishlistCount = wishlistItems.length;
+
+  // Debounced search query
+  const debouncedSearch = useDebounce(searchQuery, 400);
+  
+  // Search products query
+  const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    queryKey: ['search-products', debouncedSearch],
+    queryFn: () => searchProducts(debouncedSearch),
+    enabled: debouncedSearch.length >= 2,
+  });
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleProductClick = (productId: number) => {
+    setSearchQuery('');
+    setIsSearchFocused(false);
+    navigate(`/product/${productId}`);
+  };
 
   // Fetch categories dynamically
   const { data: categories = [] } = useQuery({
@@ -167,31 +234,78 @@ export function Navbar() {
             </div>
 
             {/* Search Bar */}
-            <div className="flex-1 max-w-2xl hidden md:block">
+            <div className="flex-1 max-w-2xl hidden md:block" ref={searchRef}>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
                   placeholder="Search for products, brands, and more..."
                   className="w-full h-12 pl-12 pr-4 bg-slate-900/50 border border-slate-800 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-all"
                 />
+                {isSearching && (
+                  <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                )}
+                
+                {/* Search Dropdown */}
+                {isSearchFocused && searchQuery.length >= 2 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden z-50">
+                    {searchResults.length > 0 ? (
+                      <div className="max-h-96 overflow-y-auto">
+                        {searchResults.map((product) => (
+                          <button
+                            key={product.id}
+                            onClick={() => handleProductClick(product.id)}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-800 transition-colors text-left"
+                          >
+                            {/* Product Image */}
+                            <div className="w-12 h-12 rounded-lg bg-slate-800 overflow-hidden flex-shrink-0">
+                              {product.imageUrl ? (
+                                <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-6 h-6 text-slate-600" />
+                                </div>
+                              )}
+                            </div>
+                            {/* Product Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-white truncate">{product.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-slate-400">
+                                <span className="text-emerald-400 font-semibold">${product.price.toFixed(2)}</span>
+                                <span>•</span>
+                                <span className={product.stockQuantity > 0 ? 'text-green-400' : 'text-red-400'}>
+                                  {product.stockQuantity > 0 ? `${product.stockQuantity} in stock` : 'Out of stock'}
+                                </span>
+                              </div>
+                              {product.vendorStoreName && (
+                                <p className="text-xs text-slate-500 truncate">by {product.vendorStoreName}</p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : !isSearching ? (
+                      <div className="p-4 text-center text-slate-400 text-sm">
+                        No products found for "{searchQuery}"
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
-              {/* Wishlist (Desktop) - Heart Icon with badge */}
+              {/* Wishlist (Desktop) - Heart Icon without badge */}
               <Link
                 to="/wishlist"
                 className="hidden lg:flex relative p-2.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-xl transition-all"
                 title="Wishlist"
               >
                 <Heart className="w-5 h-5" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
-                    {wishlistCount > 99 ? '99+' : wishlistCount}
-                  </span>
-                )}
               </Link>
 
               {/* Cart */}

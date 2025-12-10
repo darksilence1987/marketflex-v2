@@ -35,7 +35,7 @@ public record ProductDto(
 
     String categoryName,
 
-    boolean active,
+    Boolean active,
 
     Long vendorId,
 

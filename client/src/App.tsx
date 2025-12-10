@@ -9,6 +9,7 @@ import AccountLayout from './pages/account/AccountLayout';
 import ProfilePage from './pages/account/ProfilePage';
 import OrdersPage from './pages/account/OrdersPage';
 import VendorDashboard from './pages/vendor/VendorDashboard';
+import ProductFormPage from './pages/vendor/ProductFormPage';
 import VendorStorePage from './pages/vendor/VendorStorePage';
 import WishlistPage from './pages/WishlistPage';
 import FavouriteVendorsPage from './pages/FavouriteVendorsPage';
@@ -85,6 +86,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <VendorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendor/product/new"
+            element={
+              <ProtectedRoute>
+                <ProductFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendor/product/:productId/edit"
+            element={
+              <ProtectedRoute>
+                <ProductFormPage />
               </ProtectedRoute>
             }
           />

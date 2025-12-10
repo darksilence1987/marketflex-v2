@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.xhite.marketflex.exception.StorageException;
@@ -21,11 +21,12 @@ import org.springframework.util.StringUtils;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = true)
 public class FileStorageServiceImpl implements FileStorageService {
     
     private final Path fileStorageLocation;
     private final String imageBaseUrl;
-    private final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif");
+    private final Set<String> ALLOWED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "webp");
 
     @PostConstruct
     public void init() {
@@ -77,6 +78,31 @@ public class FileStorageServiceImpl implements FileStorageService {
 
         } catch (IOException e) {
             throw new StorageException("Failed to store file " + filename, e);
+        }
+    }
+
+    @Override
+    public void delete(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            return;
+        }
+        
+        // Only delete local files (those that start with our base URL)
+        if (!imageUrl.startsWith(imageBaseUrl)) {
+            log.debug("Skipping delete for external URL: {}", imageUrl);
+            return;
+        }
+        
+        try {
+            String filename = imageUrl.substring(imageUrl.lastIndexOf("/") + 1);
+            Path filePath = fileStorageLocation.resolve(filename);
+            
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+                log.info("Deleted file: {}", filePath);
+            }
+        } catch (IOException e) {
+            log.warn("Failed to delete file: {}", imageUrl, e);
         }
     }
 

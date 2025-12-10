@@ -176,7 +176,10 @@ public class ProductServiceImpl implements ProductService {
         if (dto.imageUrl() != null && !dto.imageUrl().isEmpty()) {
             product.setImageUrl(dto.imageUrl());
         }
-        product.setActive(dto.active());
+        // Handle null active - default to keeping current value or true
+        if (dto.active() != null) {
+            product.setActive(dto.active());
+        }
     }
 
     @Override
