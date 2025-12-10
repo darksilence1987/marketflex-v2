@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save, Loader2, AlertCircle, Upload, Trash2, Image as ImageIcon } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, AlertCircle, Upload, Trash2, Image as ImageIcon, ShieldAlert } from 'lucide-react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Button } from '../../components/ui/Button';
 import { useVendorContext, VendorProvider } from '../../context/VendorContext';
@@ -45,6 +45,7 @@ function ProductFormContent() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isDeletingImage, setIsDeletingImage] = useState(false);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
@@ -65,9 +66,15 @@ function ProductFormContent() {
     enabled: isEditMode,
   });
 
-  // Populate form with existing product data
+  // Populate form with existing product data and check ownership
   useEffect(() => {
     if (existingProduct) {
+      // Check if product belongs to current vendor
+      if (selectedVendor && existingProduct.vendorId !== selectedVendor.id) {
+        setIsUnauthorized(true);
+        return;
+      }
+      setIsUnauthorized(false);
       setFormData({
         name: existingProduct.name,
         description: existingProduct.description || '',
@@ -78,7 +85,7 @@ function ProductFormContent() {
         vendorId: existingProduct.vendorId,
       });
     }
-  }, [existingProduct]);
+  }, [existingProduct, selectedVendor]);
 
   // Update vendorId when selectedVendor changes (for new products)
   useEffect(() => {
@@ -104,7 +111,12 @@ function ProductFormContent() {
       navigate('/vendor/dashboard');
     },
     onError: (err: any) => {
-      setError(err.response?.data?.message || 'Failed to save product');
+      // Check for 403 Forbidden (unauthorized access)
+      if (err.response?.status === 403) {
+        setError('You don\\'t have permission to edit this product. You can only edit your own products.');
+      } else {
+        setError(err.response?.data?.message || err.response?.data?.detail || 'Failed to save product');
+      }
     },
   });
 
@@ -182,7 +194,7 @@ function ProductFormContent() {
     setError(null);
     
     try {
-      const response = await api.delete(`/products/${productId}/image`);
+      await api.delete(`/products/${productId}/image`);
       setFormData(prev => ({ ...prev, imageUrl: '' }));
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
     } catch (err: any) {
@@ -236,6 +248,23 @@ function ProductFormContent() {
         <Navbar />
         <div className="max-w-3xl mx-auto px-4 py-12 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show unauthorized message if product doesn't belong to current vendor
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen bg-slate-950">
+        <Navbar />
+        <div className="max-w-3xl mx-auto px-4 py-12 text-center">
+          <ShieldAlert className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-white mb-2">Unauthorized Access</h1>
+          <p className="text-slate-400 mb-6">
+            You don't have permission to edit this product. You can only edit products that belong to your store.
+          </p>
+          <Button onClick={() => navigate('/vendor/dashboard')}>Go to Dashboard</Button>
         </div>
       </div>
     );

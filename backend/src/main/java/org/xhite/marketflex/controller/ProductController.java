@@ -5,12 +5,17 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.xhite.marketflex.dto.ProductDto;
+import org.xhite.marketflex.model.AppUser;
+import org.xhite.marketflex.model.enums.Role;
+import org.xhite.marketflex.repository.ProductRepository;
 import org.xhite.marketflex.service.FileStorageService;
 import org.xhite.marketflex.service.ProductService;
+import org.xhite.marketflex.service.UserService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +29,27 @@ public class ProductController {
 
     private final ProductService productService;
     private final FileStorageService storageService;
+    private final UserService userService;
+    private final ProductRepository productRepository;
+
+    /**
+     * Check if current user can modify this product
+     */
+    private void checkProductOwnership(Long productId) {
+        AppUser currentUser = userService.getCurrentUser();
+        // ADMIN can modify any product
+        if (currentUser.hasRole(Role.ADMIN)) {
+            return;
+        }
+        
+        var product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        
+        // Check if product belongs to current user's vendor
+        if (!product.getVendor().getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only modify your own products");
+        }
+    }
 
     /**
      * GET /api/v1/products/my-products - Get products for authenticated vendor
@@ -190,6 +216,9 @@ public class ProductController {
     public ResponseEntity<ProductDto> deleteProductImage(@PathVariable Long id) {
         log.info("Deleting image for product {}", id);
         
+        // Check ownership before allowing image deletion
+        checkProductOwnership(id);
+        
         ProductDto product = productService.getProductById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
         
@@ -226,6 +255,9 @@ public class ProductController {
             @PathVariable Long id,
             @RequestPart("imageFile") MultipartFile imageFile) {
         log.info("Uploading image for product {}", id);
+        
+        // Check ownership before allowing image upload
+        checkProductOwnership(id);
         
         ProductDto product = productService.getProductById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));

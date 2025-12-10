@@ -26,7 +26,6 @@ import { Button } from '../ui/Button';
 import { useUIStore } from '../../store/uiStore';
 import { useCartStore } from '../../store/cartStore';
 import { useAuthStore } from '../../store/authStore';
-import { useWishlistStore } from '../../store/wishlistStore';
 import api from '../../lib/axios';
 
 // Category icon mapping
@@ -130,7 +129,6 @@ export function Navbar() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  const { items: wishlistItems } = useWishlistStore();
 
   // Debounced search query
   const debouncedSearch = useDebounce(searchQuery, 400);
