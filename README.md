@@ -19,6 +19,7 @@ The platform supports multi-tenancy for vendors, complete order management, shop
 | PostgreSQL | 18.x | Primary Database |
 | Flyway | Latest | Database Migrations |
 | Caffeine | 3.1.8 | Caching Layer |
+| Google Cloud Storage | 2.30.x | Product Image Storage |
 | SpringDoc OpenAPI | 2.8.8 | API Documentation |
 | Gradle | 9.x | Build Tool |
 
@@ -70,10 +71,18 @@ marketflex-v2/
   - Profile management with address updates
 
 - **Product Catalog**
-  - Product listing with filtering
+  - Infinite scroll pagination (lazy loading)
+  - Server-side filtering & sorting
   - Category management
   - Product detail pages
   - Featured products display
+  - Debounced search with live suggestions (400ms)
+
+- **Image Management**
+  - Google Cloud Storage integration
+  - Product image upload/delete endpoints
+  - Automatic old image cleanup on replacement
+  - Fallback to local storage
 
 - **Shopping Experience**
   - Shopping cart management
@@ -89,9 +98,10 @@ marketflex-v2/
 
 - **Vendor System**
   - Multi-vendor support
-  - Vendor dashboard
+  - Vendor dashboard with product CRUD
   - Store settings management
   - Vendor-specific order tracking
+  - Product ownership security (vendors can only edit their own products)
 
 - **User Dashboard**
   - Account profile settings
@@ -103,7 +113,7 @@ marketflex-v2/
 | Module | Endpoints |
 |--------|-----------|
 | **Auth** | `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `PUT /api/v1/auth/profile` |
-| **Products** | `GET /api/v1/products`, `GET /api/v1/products/{id}`, `POST /api/v1/products` |
+| **Products** | `GET /api/v1/products/filter`, `GET /api/v1/products/{id}`, `POST /api/v1/products`, `POST /api/v1/products/{id}/image`, `DELETE /api/v1/products/{id}/image` |
 | **Categories** | `GET /api/v1/categories`, `POST /api/v1/categories` |
 | **Cart** | `GET /api/v1/cart`, `POST /api/v1/cart`, `DELETE /api/v1/cart/{id}` |
 | **Orders** | `POST /api/v1/orders/checkout`, `GET /api/v1/orders`, `GET /api/v1/orders/{id}` |

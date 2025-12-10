@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import {
   Search,
   SlidersHorizontal,
@@ -10,6 +10,7 @@ import {
   Check,
   Grid3X3,
   LayoutList,
+  Loader2,
 } from 'lucide-react';
 import { Navbar } from '../../components/layout/Navbar';
 import { Footer } from '../../components/layout/Footer';
@@ -18,13 +19,7 @@ import { CartDrawer } from '../../components/features/CartDrawer';
 import { ProductCard, ProductCardSkeleton } from '../../components/features/ProductCard';
 import { Button } from '../../components/ui/Button';
 import { DualRangeSlider } from '../../components/ui/Slider';
-import {
-  useProducts,
-  filterProducts,
-  mockProducts,
-  mockCategories,
-  type ProductFilters,
-} from '../../hooks/useProducts';
+import { mockCategories } from '../../hooks/useProducts';
 import api from '../../lib/axios';
 
 // Fetch categories from API
@@ -37,6 +32,39 @@ async function fetchCategories() {
   }
 }
 
+// Fetch paginated products
+interface ProductPage {
+  content: any[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+async function fetchProductsPage(page: number, size: number, filters: Record<string, any>): Promise<ProductPage> {
+  const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('size', String(size));
+  
+  if (filters.categoryId) params.set('categoryId', String(filters.categoryId));
+  if (filters.minPrice) params.set('minPrice', String(filters.minPrice));
+  if (filters.maxPrice) params.set('maxPrice', String(filters.maxPrice));
+  if (filters.inStock) params.set('inStock', 'true');
+  if (filters.search) params.set('search', filters.search);
+  
+  // Send sortBy directly - backend expects: price-asc, price-desc, newest, name
+  if (filters.sortBy) {
+    params.set('sortBy', filters.sortBy);
+  }
+  
+  const { data } = await api.get<ProductPage>(`/products/filter?${params.toString()}`);
+  return data;
+}
+
 const sortOptions = [
   { value: 'newest', label: 'Newest First' },
   { value: 'price-asc', label: 'Price: Low to High' },
@@ -47,10 +75,11 @@ const sortOptions = [
 // Price range constants
 const PRICE_MIN = 0;
 const PRICE_MAX = 1000;
+const PAGE_SIZE = 12;
 
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: products, isLoading, error } = useProducts();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Scroll to top when page loads
   useEffect(() => {
@@ -67,9 +96,6 @@ export default function ProductListingPage() {
   // Use API categories or fallback to mock
   const categories = apiCategories ?? mockCategories;
 
-  // Use mock data if API fails or is loading
-  const productList = products ?? mockProducts;
-
   // Filter state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -81,14 +107,58 @@ export default function ProductListingPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   // Get filters from URL
-  const filters: ProductFilters = useMemo(() => ({
+  const filters = useMemo(() => ({
     categoryId: searchParams.get('category') ? Number(searchParams.get('category')) : undefined,
     minPrice: searchParams.get('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
     maxPrice: searchParams.get('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
     inStock: searchParams.get('inStock') === 'true',
     search: searchParams.get('q') ?? undefined,
-    sortBy: (searchParams.get('sort') as ProductFilters['sortBy']) ?? 'newest',
+    sortBy: (searchParams.get('sort') as 'newest' | 'price-asc' | 'price-desc' | 'name') ?? 'newest',
   }), [searchParams]);
+
+  // Infinite query for products
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
+  } = useInfiniteQuery({
+    queryKey: ['products-infinite', filters],
+    queryFn: ({ pageParam = 0 }) => fetchProductsPage(pageParam, PAGE_SIZE, filters),
+    getNextPageParam: (lastPage) => {
+      if (lastPage.last) return undefined;
+      return lastPage.page + 1;
+    },
+    initialPageParam: 0,
+  });
+
+  // Flatten all pages into single products array
+  const products = useMemo(() => {
+    if (!data?.pages) return [];
+    return data.pages.flatMap(page => page.content);
+  }, [data]);
+
+  const totalProducts = data?.pages[0]?.totalElements ?? 0;
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Get selected category name
   const selectedCategoryName = useMemo(() => {
@@ -137,11 +207,6 @@ export default function ProductListingPage() {
   const clearAllFilters = useCallback(() => {
     setSearchParams(new URLSearchParams());
   }, [setSearchParams]);
-
-  // Filter and sort products
-  const filteredProducts = useMemo(() => {
-    return filterProducts(productList, filters);
-  }, [productList, filters]);
 
   const toggleSection = useCallback((section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -283,7 +348,7 @@ export default function ProductListingPage() {
             {pageTitle}
           </h1>
           <p className="text-slate-400">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+            {isLoading ? 'Loading...' : `${totalProducts} product${totalProducts !== 1 ? 's' : ''} found`}
           </p>
         </div>
 
@@ -408,7 +473,7 @@ export default function ProductListingPage() {
                   Try Again
                 </Button>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="text-center py-16">
                 <Search className="w-16 h-16 text-slate-700 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-white mb-2">No products found</h3>
@@ -427,17 +492,30 @@ export default function ProductListingPage() {
                     : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
                 }`}
               >
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard key={`product-${product.id}`} product={product} />
                 ))}
               </div>
             ) : (
               <div className="space-y-4">
-                {filteredProducts.map((product) => (
+                {products.map((product) => (
                   <ProductCard key={`product-${product.id}`} product={product} variant="compact" />
                 ))}
               </div>
             )}
+
+            {/* Load More Trigger */}
+            <div ref={loadMoreRef} className="py-8 flex justify-center">
+              {isFetchingNextPage && (
+                <div className="flex items-center gap-2 text-slate-400">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Loading more products...
+                </div>
+              )}
+              {!hasNextPage && products.length > 0 && (
+                <p className="text-slate-500 text-sm">No more products to load</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
