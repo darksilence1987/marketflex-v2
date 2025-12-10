@@ -220,120 +220,132 @@ export default function ProductListingPage() {
     filters.search;
 
   // Sidebar content component
-  const SidebarContent = useCallback(() => (
-    <div className="space-y-6">
-      {/* Categories */}
-      <div className="border-b border-slate-800 pb-6">
-        <button
-          onClick={() => toggleSection('categories')}
-          className="flex items-center justify-between w-full text-left mb-4"
-        >
-          <span className="font-semibold text-white">Categories</span>
-          {expandedSections.categories ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+  const SidebarContent = useCallback(
+    () => (
+      <div className="space-y-6">
+        {/* Categories */}
+        <div className="border-b border-slate-800 pb-6">
+          <button
+            onClick={() => toggleSection('categories')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <span className="font-semibold text-white">Categories</span>
+            {expandedSections.categories ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          {expandedSections.categories && (
+            <div className="space-y-2">
+              {categories.map((category: { id: number; name: string }) => {
+                const isSelected = filters.categoryId === category.id;
+                return (
+                  <div
+                    key={`category-${category.id}`}
+                    className="flex items-center gap-3 cursor-pointer group"
+                    onClick={() =>
+                      updateFilter('category', isSelected ? null : String(category.id))
+                    }
+                  >
+                    <div
+                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                        isSelected
+                          ? 'bg-emerald-500 border-emerald-500'
+                          : 'border-slate-600 group-hover:border-emerald-500'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-slate-300 group-hover:text-white transition-colors">
+                      {category.name}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </button>
-        {expandedSections.categories && (
-          <div className="space-y-2">
-            {categories.map((category: { id: number; name: string }) => (
-              <label
-                key={`category-${category.id}`}
-                className="flex items-center gap-3 cursor-pointer group"
-                onClick={() =>
-                  updateFilter(
-                    'category',
-                    filters.categoryId === category.id ? null : String(category.id)
-                  )
-                }
-              >
-                <div
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                    filters.categoryId === category.id
-                      ? 'bg-emerald-500 border-emerald-500'
-                      : 'border-slate-600 group-hover:border-emerald-500'
-                  }`}
-                >
-                  {filters.categoryId === category.id && (
-                    <Check className="w-3 h-3 text-white" />
-                  )}
-                </div>
-                <span className="text-slate-300 group-hover:text-white transition-colors">
-                  {category.name}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
 
-      {/* Price Range - Now using Slider */}
-      <div className="border-b border-slate-800 pb-6">
-        <button
-          onClick={() => toggleSection('price')}
-          className="flex items-center justify-between w-full text-left mb-4"
-        >
-          <span className="font-semibold text-white">Price Range</span>
-          {expandedSections.price ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+        {/* Price Range - Now using Slider */}
+        <div className="border-b border-slate-800 pb-6">
+          <button
+            onClick={() => toggleSection('price')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <span className="font-semibold text-white">Price Range</span>
+            {expandedSections.price ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          {expandedSections.price && (
+            <DualRangeSlider
+              min={PRICE_MIN}
+              max={PRICE_MAX}
+              step={10}
+              minValue={filters.minPrice ?? PRICE_MIN}
+              maxValue={filters.maxPrice ?? PRICE_MAX}
+              onChange={handlePriceRangeChange}
+              formatLabel={(v) => `$${v}`}
+            />
           )}
-        </button>
-        {expandedSections.price && (
-          <DualRangeSlider
-            min={PRICE_MIN}
-            max={PRICE_MAX}
-            step={10}
-            minValue={filters.minPrice ?? PRICE_MIN}
-            maxValue={filters.maxPrice ?? PRICE_MAX}
-            onChange={handlePriceRangeChange}
-            formatLabel={(v) => `$${v}`}
-          />
-        )}
-      </div>
+        </div>
 
-      {/* Availability */}
-      <div>
-        <button
-          onClick={() => toggleSection('availability')}
-          className="flex items-center justify-between w-full text-left mb-4"
-        >
-          <span className="font-semibold text-white">Availability</span>
-          {expandedSections.availability ? (
-            <ChevronUp className="w-4 h-4 text-slate-400" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-400" />
-          )}
-        </button>
-        {expandedSections.availability && (
-          <label className="flex items-center gap-3 cursor-pointer group">
+        {/* Availability */}
+        <div>
+          <button
+            onClick={() => toggleSection('availability')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <span className="font-semibold text-white">Availability</span>
+            {expandedSections.availability ? (
+              <ChevronUp className="w-4 h-4 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-400" />
+            )}
+          </button>
+          {expandedSections.availability && (
             <div
-              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
-                filters.inStock
-                  ? 'bg-emerald-500 border-emerald-500'
-                  : 'border-slate-600 group-hover:border-emerald-500'
-              }`}
+              className="flex items-center gap-3 cursor-pointer group"
               onClick={() => updateFilter('inStock', filters.inStock ? null : 'true')}
             >
-              {filters.inStock && <Check className="w-3 h-3 text-white" />}
+              <div
+                className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                  filters.inStock
+                    ? 'bg-emerald-500 border-emerald-500'
+                    : 'border-slate-600 group-hover:border-emerald-500'
+                }`}
+              >
+                {filters.inStock && <Check className="w-3 h-3 text-white" />}
+              </div>
+              <span className="text-slate-300 group-hover:text-white transition-colors">
+                In Stock Only
+              </span>
             </div>
-            <span className="text-slate-300 group-hover:text-white transition-colors">
-              In Stock Only
-            </span>
-          </label>
+          )}
+        </div>
+
+        {/* Clear Filters */}
+        {hasActiveFilters && (
+          <Button variant="outline" className="w-full" onClick={clearAllFilters}>
+            Clear All Filters
+          </Button>
         )}
       </div>
-
-      {/* Clear Filters */}
-      {hasActiveFilters && (
-        <Button variant="outline" className="w-full" onClick={clearAllFilters}>
-          Clear All Filters
-        </Button>
-      )}
-    </div>
-  ), [categories, expandedSections, filters, hasActiveFilters, toggleSection, updateFilter, handlePriceRangeChange, clearAllFilters]);
+    ),
+    [
+      categories,
+      expandedSections,
+      filters,
+      hasActiveFilters,
+      toggleSection,
+      updateFilter,
+      handlePriceRangeChange,
+      clearAllFilters,
+    ]
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200">
