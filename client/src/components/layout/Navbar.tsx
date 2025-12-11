@@ -170,7 +170,7 @@ export function Navbar() {
   const userRole = user?.role?.replace('ROLE_', '');
   const isVendor = userRole === 'VENDOR' || userRole === 'MANAGER' || userRole === 'ADMIN';
   const { data: myVendors = [] } = useQuery({
-    queryKey: ['my-vendors-nav'],
+    queryKey: ['my-vendors-nav', user?.email],
     queryFn: fetchMyVendors,
     staleTime: 1000 * 60 * 5,
     enabled: isAuthenticated && isVendor,

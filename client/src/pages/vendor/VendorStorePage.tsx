@@ -15,6 +15,7 @@ import { Footer } from '../../components/layout/Footer';
 import { ProductCard, ProductCardSkeleton } from '../../components/features/ProductCard';
 import { useFavouriteVendorsStore } from '../../store/favouriteVendorsStore';
 import { useAuthStore } from '../../store/authStore';
+import { AuthDrawer } from '../../components/features/AuthDrawer';
 import api from '../../lib/axios';
 import type { Product } from '../../hooks/useProducts';
 
@@ -210,6 +211,7 @@ export default function VendorStorePage() {
         </div>
       </main>
 
+      <AuthDrawer />
       <Footer />
     </div>
   );
