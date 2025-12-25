@@ -1,6 +1,6 @@
 # MarketFlex v2 - Modern E-Commerce Platform
 
-**Status:** Active Development | **Architecture:** Full-Stack Headless E-Commerce
+**Status:** Working Demo | **Architecture:** Full-Stack Headless E-Commerce
 
 ## 📄 Project Overview
 
@@ -118,37 +118,6 @@ marketflex-v2/
 | **Cart** | `GET /api/v1/cart`, `POST /api/v1/cart`, `DELETE /api/v1/cart/{id}` |
 | **Orders** | `POST /api/v1/orders/checkout`, `GET /api/v1/orders`, `GET /api/v1/orders/{id}` |
 | **Vendors** | `GET /api/v1/vendors/all`, `GET /api/v1/vendors/{id}`, `GET /api/v1/vendors/orders` |
-
-## 🗺️ Migration Roadmap
-
-- [x] **Phase 1: Foundation & Infrastructure**
-    - Migrated codebase to Java 25
-    - Containerized database (PostgreSQL 18)
-    - Established CI/CD pipelines with GitHub Actions
-
-- [x] **Phase 2: Decoupling (Headless Shift)**
-    - Refactored all Controllers to REST APIs
-    - Removed Thymeleaf dependencies
-    - Implemented DTOs as Java Records
-    - Global Exception Handling
-
-- [x] **Phase 3: Security Overhaul**
-    - Implemented JWT Authentication Filter
-    - Configured Spring Security 7 SecurityFilterChain
-    - Role-Based Access Control (RBAC)
-
-- [x] **Phase 4: Client Implementation**
-    - Initialized React 19 project with Vite
-    - Set up Zustand stores (auth, cart, UI)
-    - Implemented TanStack Query for data fetching
-    - Built comprehensive page structure
-
-- [ ] **Phase 5: Feature Enhancements** (Current)
-    - [ ] Product reviews & ratings
-    - [ ] Advanced search with Elasticsearch
-    - [ ] Payment gateway integration
-    - [ ] Email notifications
-    - [ ] Admin dashboard
 
 ## ⚡ Getting Started
 
